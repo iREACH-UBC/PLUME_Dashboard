@@ -45,6 +45,7 @@ app.title = 'PLUME Dashboard'
 
 #TODO add system file location argument
 
+'''
 # set directories based on current computer
 if os.environ['COMPUTERNAME'] == 'APSD-CLW-MEC156':
     username = "mechuser"
@@ -55,6 +56,7 @@ else:
 log_folder_path = "C:/Users/"+username+"/Sync/iREACH/Students/Chris/Test1"
 if log_folder_path.endswith('/'):
     log_folder_path.removesuffix('/')
+'''
 
 interval_s = 2 #Instrument polling rates in seconds.normally 2
 graph_range = 2 * 60 #Range of graph display in seconds.
@@ -1489,6 +1491,11 @@ if __name__ == '__main__':
         "CO2": string_to_list_interval(parser.get('y-ranges','CO2')),
         "NO": string_to_list_interval(parser.get('y-ranges', 'NO'))
     }
+
+    #log folder path
+    log_folder_path = parser.get('log_directory','log_files_directory')
+    if log_folder_path.endswith('/'):
+        log_folder_path.removesuffix('/')
 
     #command character
     command_character = parser.get('command_char','command_character')

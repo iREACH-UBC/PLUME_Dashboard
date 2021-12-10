@@ -19,6 +19,11 @@ config['command_char'] = {
     'command_character':'*'
 }
 
+#log files directory
+config['log_directory'] = {
+    'log_files_directory':'C:\Users\Chris\Sync\iREACH\Students\Chris\Test1'
+}
+
 #misc, including algorithm circuit breaker
 config['algorithm_circuit_breaker'] = {
     'A1_on': 'true',
