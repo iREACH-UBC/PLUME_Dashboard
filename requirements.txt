@@ -1,0 +1,13 @@
+dash==1.20.0
+plotly==4.10.0
+dash_core_components==1.0.0
+dash_html_components==1.0.0
+pandas==1.2.0
+redis==3.5.3
+dash_daq==0.5.0
+numpy==1.20.0
+dash_bootstrap_components==0.11.0
+pymodbus==2.4.0
+pyModbusTCP==0.1.8
+pyserial==3.5
+db==0.1.1
