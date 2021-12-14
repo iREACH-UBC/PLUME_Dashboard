@@ -1120,7 +1120,7 @@ def get_no_data(n):
 
         #call our algorithms
         A1ap(no_trace_y, "no")
-        AQap(no2_trace_y, "no")
+        AQap(no_trace_y, "no")
 
         #return either real data or our simulated data
         if simulated_or_real['no'] == 'simulated':
@@ -1405,7 +1405,6 @@ def update_graph_scatter(n_intervals, dropdown_value):
 #
 
 avs =0
-
 
 
 '''#########################################
