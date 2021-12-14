@@ -1420,6 +1420,11 @@ def update_graph_scatter(n_intervals, dropdown_value):
 
 avs =0
 
+
+
+'''#########################################
+## SECTION 6. Settings and initialization ##
+#########################################'''
 if __name__ == '__main__':
 
     #config stuff

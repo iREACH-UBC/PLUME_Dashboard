@@ -21,7 +21,7 @@ config['command_char'] = {
 
 #log files directory
 config['log_directory'] = {
-    'log_files_directory':'C:\Users\Chris\Sync\iREACH\Students\Chris\Test1'
+    'log_files_directory':'C:/Users/Chris/Sync/iREACH/Students/Chris/Test1'
 }
 
 #misc, including algorithm circuit breaker
