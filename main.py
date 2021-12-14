@@ -43,25 +43,11 @@ server = app.server
 app_color = dict(graph_bg="#E3E4E0", red="#E94029", green="#00703D", yellow="#E4BC3F")
 app.title = 'PLUME Dashboard'
 
-#TODO add system file location argument
-
-'''
-# set directories based on current computer
-if os.environ['COMPUTERNAME'] == 'APSD-CLW-MEC156':
-    username = "mechuser"
-else:
-    username = "Chris"
-    #add additional usernames here
-
-log_folder_path = "C:/Users/"+username+"/Sync/iREACH/Students/Chris/Test1"
-if log_folder_path.endswith('/'):
-    log_folder_path.removesuffix('/')
-'''
 
 interval_s = 2 #Instrument polling rates in seconds.normally 2
 graph_range = 2 * 60 #Range of graph display in seconds.
 #trace_length = math.trunc(graph_range / interval_s)
-trace_length = 60 #just keep this at 60, ok
+trace_length = 60 #no. of points on the graph
 
 #list of dropdown options
 instrumentdict = [
