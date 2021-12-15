@@ -43,7 +43,7 @@ def string_to_list_interval(string_in):
     return result
 
 ####################################### GLOBAL SETTINGS #######################################
-parser = ConfigParser()
+parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
 setting_window_size = parser.getint('baseline', 'window_size')

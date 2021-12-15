@@ -17,7 +17,7 @@ import numpy as np
 
 
 ####################################### GLOBAL SETTINGS #######################################
-parser = ConfigParser()
+parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
 A1_coeff = {
@@ -48,8 +48,10 @@ A1_thresh_dump = {
     "co": parser.getboolean('A1_post_processing_thresh_dump', 'CO'),
     "co2": parser.getboolean('A1_post_processing_thresh_dump', 'CO2'),
     "no": parser.getboolean('A1_post_processing_thresh_dump', 'NO') }
-base_thresh_only = parser.getboolean('A1_post_processing_thresh_dump', 'only_show_base_thresh')
-limit_thresh = parser.getboolean('A1_post_processing_thresh_dump', 'limit_thresh_to_just_above_max')
+#base_thresh_only = parser.getboolean('A1_post_processing_thresh_dump', 'only_show_base_thresh')
+base_thresh_only = False
+#limit_thresh = parser.getboolean('A1_post_processing_thresh_dump', 'limit_thresh_to_just_above_max')
+limit_thresh = False
 
 A1_startup_bypass = parser.getint('A1_misc','startup_bypass')
 queue_size = parser.getint('A1_misc', 'post_processing_chunk_size')

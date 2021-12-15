@@ -1413,7 +1413,7 @@ avs =0
 if __name__ == '__main__':
 
     #config stuff
-    parser = ConfigParser()
+    parser = ConfigParser(allow_no_value=True)
     parser.read('user_defined_settings.ini')
     #global counters, ONLY change when adding new pollutants, otherwise DON'T touch these
     avs =0
@@ -1492,7 +1492,8 @@ if __name__ == '__main__':
 
     #Algorithim circuit breaker
     A1 = parser.getboolean('algorithm_circuit_breaker','A1_on')
-    A2 = parser.getboolean('algorithm_circuit_breaker','A2_on')
+    #A2 = parser.getboolean('algorithm_circuit_breaker','A2_on')
+    A2 = False
     AQ = parser.getboolean('algorithm_circuit_breaker','AQ_on')
 
     #A1 settings
@@ -1568,7 +1569,7 @@ if __name__ == '__main__':
     }
     for i in simulated_or_real:
         if (simulated_or_real[i] != 'real') and (simulated_or_real[i] != 'simulated'):
-            sys.exit('the setting [real_or_simulated] '+i+' must be set to either \"simulated\" or \"real\"')
+            sys.exit('ERROR: the setting \"real_or_simulated\" for '+i+' must be set to either \"simulated\" or \"real\"')
     simulated_data_filenames = {
         "no2": (simulated_data_path + parser.get('real_or_simulated','simulated_NO2_filename')),
         "wcpc": (simulated_data_path + parser.get('real_or_simulated','simulated_WCPC_filename')),

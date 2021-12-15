@@ -1,11 +1,11 @@
 """
 Created by Julian Fawkes, 2020.
 
-WCPC-DAQ.py - A standalone program that requests data from a TSI 375x/3789 WCPC then writes the data to a redis server
+wcpc_daq.py - A standalone program that requests data from a TSI 375x/3789 WCPC then writes the data to a redis server
 and a local csv file. Connect to the same redis server from Dash to visualize the data that is incoming.
 
 Running the program: To run the program from the command line, you must include the pathname of the folder you wish
-to log to *after* the function call. e.g. "python3 WCPC-DAQ.py /users/julianfawkes/mycoolfolder"
+to log to *after* the function call. e.g. "python3 wcpc_daq.py /users/julianfawkes/mycoolfolder"
 
 Using the Start Dash helper bash script helps walk you through this.
 """
