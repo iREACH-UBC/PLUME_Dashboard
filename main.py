@@ -150,7 +150,7 @@ def A1ap(data_points, pollutant):
         return None
     sd = statistics.stdev(below_m) #stdev will do sample sd and pstdev will do population sd
     thresh = A1_coeff[pollutant] * sd
-    thresh += thresh_bump #adding thresh bump
+    thresh += thresh_bump #adding thresh bumpp
 
     #(printing stuff for debugging purposes, only implemented for NO2)
     if pollutant == "no2":
@@ -1488,7 +1488,8 @@ if __name__ == '__main__':
         log_folder_path.removesuffix('/')
 
     #command character
-    command_character = parser.get('command_char','command_character')
+    #command_character = parser.get('command_char','command_character')
+    command_character = "*" #manual override
 
     #Algorithim circuit breaker
     A1 = parser.getboolean('algorithm_circuit_breaker','A1_on')

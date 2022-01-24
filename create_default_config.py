@@ -16,10 +16,10 @@ config['y-ranges'] = {
 }
 
 #command char
-config['command_char'] = {
+'''config['command_char'] = {
     'choose ONE character to use as the command character. this will indicate to the main script when a command is being ran\n'
     'command_character':'*'
-}
+}'''
 
 #log files directory
 config['log_directory'] = {
@@ -141,7 +141,7 @@ config['modbus-tcp_settings'] ={
     'enable_co2': 'false',
     'co2_modbus_holding_register': '',
     'co2_register_length': '2',
-    'enable_no': 'false',
+    'enable_no': 'true',
     'no_modbus_holding_register': '3',
     'no_register_length': '2',
     'random_or_flat_if_disabled': 'flat'
