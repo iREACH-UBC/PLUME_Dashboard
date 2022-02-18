@@ -54,14 +54,14 @@ base_thresh_only = False
 limit_thresh = False
 
 A1_startup_bypass = parser.getint('A1_misc','startup_bypass')
-queue_size = parser.getint('A1_misc', 'post_processing_chunk_size')
+queue_size = parser.getint('A1_misc', 'chunk_size')
 trace_length = 60
 
-directory = parser.get('A1_misc', 'post_processing_folder_directory')
+directory = parser.get('A1_misc', 'folder_directory')
 if (directory[-1] != '/'):
     directory += '/'
-filename = directory+(parser.get('A1_misc','post_processing_input_filename'))
-output_csv = directory+(parser.get('A1_misc','post_processing_output_filename'))
+filename = directory+(parser.get('A1_misc','input_filename'))
+output_csv = directory+(parser.get('A1_misc','output_filename'))
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)']
 output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)',"","NO2 peak (ppb)"]

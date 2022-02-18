@@ -59,6 +59,13 @@ if (directory[-1] != '/'):
     directory += '/'
 filename = directory+(parser.get('baseline','input_filename'))
 output_csv = directory+(parser.get('baseline','output_filename'))
+include_settings_in_filename = parser.getboolean('baseline','settings_in_name')
+if (include_settings_in_filename):
+    filename_no_extension = ''
+    for i in range(0, len(output_csv)):
+        if output_csv[(i):(i+4)].lower() == '.csv':
+            filename_no_extension = output_csv[0:i]
+    output_csv = filename_no_extension + ", window_size = "+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing)+'.csv'
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)']
 output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)']

@@ -142,10 +142,11 @@ if __name__ == "__main__":
 
     for pollutant in enable_pollutant_setting:
         if enable_pollutant_setting[pollutant]:
-            holding_regs_setting[pollutant][0] = parser.getint('modbus-tcp_settings', (pollutant + '_modbus_holding_register'))
-            holding_regs_setting[pollutant][1] = parser.getint('modbus-tcp_settings', (pollutant + '_register_length'))
+            holding_regs_setting[pollutant][0] = parser.getint('modbus-tcp_settings', (pollutant + '_modbus_hr'))
+            holding_regs_setting[pollutant][1] = parser.getint('modbus-tcp_settings', (pollutant + '_hr_length'))
 
-    disabled_behaviour_setting = parser.get('modbus-tcp_settings', 'random_or_flat_if_disabled')
+    #disabled_behaviour_setting = parser.get('modbus-tcp_settings', 'random_or_flat_if_disabled')
+    disabled_behaviour_setting = 'flat' #manual override
     if not (disabled_behaviour_setting == 'random' or disabled_behaviour_setting == 'flat'):
         if not (enable_pollutant_setting['no2'] and enable_pollutant_setting['wcpc'] and enable_pollutant_setting['o3'] and enable_pollutant_setting['co'] and enable_pollutant_setting['co2'] and enable_pollutant_setting['no']):
             sys.exit('ERROR: the setting \'random_or_flat_if_disabled\' must be set to either \'random\' or \'flat\'')

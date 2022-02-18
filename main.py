@@ -749,8 +749,8 @@ def read_command(raw_command):
 
     #change of A1_coeff command
     """
-    '%coeff = 12 - no2' #changes A1_coeff for no2 to 12
-    '%coeff = 456 - wcpc' #changes A1_coeff for wcpc to 456
+    '*coeff = 12 - no2' #changes A1_coeff for no2 to 12
+    '*coeff = 456 - wcpc' #changes A1_coeff for wcpc to 456
     """
     if command[1:7] == "coeff=":
         global A1_coeff
@@ -770,8 +770,8 @@ def read_command(raw_command):
 
     #change of A1_percentile command
     """
-    '%percentile = 75 - no2' #changes A1_percentile for no2 to 75
-    '%percentile = 50 - wcpc' #changes A1_coeff for wcpc to 50
+    '*percentile = 75 - no2' #changes A1_percentile for no2 to 75
+    '*percentile = 50 - wcpc' #changes A1_coeff for wcpc to 50
     """
     if command[1:12] == "percentile=":
         global A1_percentile
@@ -791,8 +791,8 @@ def read_command(raw_command):
 
     #change of AQ_thresh command
     """
-    '%AQ_thresh = 40 - no2' #changes AQ_thresh for no2 to 40
-    '%AQ_thresh = 8000 - wcpc' #changes AQ_thresh for wcpc to 8000
+    '*AQ_thresh = 40 - no2' #changes AQ_thresh for no2 to 40
+    '*AQ_thresh = 8000 - wcpc' #changes AQ_thresh for wcpc to 8000
      """
     if command[1:11] == "aq_thresh=":
         global AQ_thresh
@@ -812,8 +812,8 @@ def read_command(raw_command):
 
     #simple A1 and AQ toggle switch
     """
-    '%tA1' - toggles A1 on/off
-    '%tAQ' - toggles AQ on/off
+    '*tA1' - toggles A1 on/off
+    '*tAQ' - toggles AQ on/off
     """
     if command[1] == 't':
         global toggle_type
@@ -847,11 +847,11 @@ def read_command(raw_command):
 
     #change of graph y axes range command (if statement accounting for both possible notations)
     """
-    '%y_range = 0,80-no2' #changes graph y_range for no2 to [0,80]
-    '%y_range = 6000,9000 - wcpc' #changes graph y_range for wcpc to [6000,9000]
+    '*y_range = 0,80-no2' #changes graph y_range for no2 to [0,80]
+    '*y_range = 6000,9000 - wcpc' #changes graph y_range for wcpc to [6000,9000]
     OR (shortcut version)
-    '%0,80 no2' #changes graph y_range for no2 to [0,80]
-    '%6000,9000 wcpc' #changes graph y_range for wcpc to [6000,9000]
+    '*0,80 no2' #changes graph y_range for no2 to [0,80]
+    '*6000,9000 wcpc' #changes graph y_range for wcpc to [6000,9000]
     """
     if (command[1:9] == "y_range=") or (command[1].isnumeric()):
         global y_range_dict
@@ -1483,7 +1483,7 @@ if __name__ == '__main__':
     }
 
     #log folder path
-    log_folder_path = parser.get('log_directory','log_files_directory')
+    log_folder_path = parser.get('log_directory','log_files_path')
     if log_folder_path.endswith('/'):
         log_folder_path.removesuffix('/')
 
@@ -1557,9 +1557,6 @@ if __name__ == '__main__':
     "no": parser.getint('AQ_thresh','NO')}
 
     #simulated data settings
-    simulated_data_path = parser.get('real_or_simulated', 'simulated_data_path')
-    if (simulated_data_path[-1] != '/'):
-        simulated_data_path += '/'
     simulated_or_real = {
         "no2": parser.get('real_or_simulated', 'NO2'),
         "wcpc": parser.get('real_or_simulated', 'WCPC'),
@@ -1568,17 +1565,41 @@ if __name__ == '__main__':
         "co2": parser.get('real_or_simulated', 'CO2'),
         "no": parser.get('real_or_simulated', 'NO')
     }
+
     for i in simulated_or_real:
         if (simulated_or_real[i] != 'real') and (simulated_or_real[i] != 'simulated'):
-            sys.exit('ERROR: the setting \"real_or_simulated\" for '+i+' must be set to either \"simulated\" or \"real\"')
-    simulated_data_filenames = {
-        "no2": (simulated_data_path + parser.get('real_or_simulated','simulated_NO2_filename')),
-        "wcpc": (simulated_data_path + parser.get('real_or_simulated','simulated_WCPC_filename')),
-        "o3": (simulated_data_path + parser.get('real_or_simulated','simulated_O3_filename')),
-        "co": (simulated_data_path + parser.get('real_or_simulated','simulated_CO_filename')),
-        "co2": (simulated_data_path + parser.get('real_or_simulated','simulated_CO2_filename')),
-        "no": (simulated_data_path + parser.get('real_or_simulated','simulated_NO_filename'))
-    }
+            sys.exit('ERROR: the setting \"real_or_simulated\" for ' + i + ' must be set to either \"simulated\" or \"real\"')
+
+    all_real = True
+    for i in simulated_or_real:
+        if i == "simulated":
+            all_real = False
+            break
+
+    if not all_real:
+        simulated_data_path = parser.get('real_or_simulated', 'sim_data_path')
+        if (simulated_data_path[-1] != '/'):
+            simulated_data_path += '/'
+        simulated_data_filenames = {
+            "no2": '',
+            "wcpc": '',
+            "o3": '',
+            "co": '',
+            "co2": '',
+            "no": ''
+        }
+        if simulated_or_real['no2'] == 'simulated':
+            simulated_data_filenames['no2'] = simulated_data_path + parser.get('real_or_simulated','sim_NO2_filename')
+        if simulated_or_real['wcpc'] == 'simulated':
+            simulated_data_filenames['wcpc'] = simulated_data_path + parser.get('real_or_simulated','sim_WCPC_filename')
+        if simulated_or_real['o3'] == 'simulated':
+            simulated_data_filenames['o3'] = simulated_data_path + parser.get('real_or_simulated','sim_O3_filename')
+        if simulated_or_real['co'] == 'simulated':
+            simulated_data_filenames['co'] = simulated_data_path + parser.get('real_or_simulated','sim_CO_filename')
+        if simulated_or_real['co2'] == 'simulated':
+            simulated_data_filenames['co2'] = simulated_data_path + parser.get('real_or_simulated','sim_CO2_filename')
+        if simulated_or_real['no'] == 'simulated':
+            simulated_data_filenames['no'] = simulated_data_path + parser.get('real_or_simulated','sim_NO_filename')
 
     #clock variables used for simulated data
     no2_clock_x = 1

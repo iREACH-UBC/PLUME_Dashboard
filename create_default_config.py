@@ -24,7 +24,7 @@ config['y-ranges'] = {
 #log files directory
 config['log_directory'] = {
     'specify the directory for the dashboard to create the event markers and sensor transcript csv files in\n'
-    'log_files_directory':'C:/Users/Chris/Sync/iREACH/Students/Chris/Test1'
+    'log_files_path':'C:/Users/Chris/Sync/iREACH/Students/Chris/Test1'
 }
 
 #misc, including algorithm circuit breaker
@@ -43,13 +43,13 @@ config['real_or_simulated'] = {
     'CO': 'real',
     'CO2': 'real',
     'NO': 'real',
-    'simulated_data_path': 'C:/Users/Chris/Sync/iREACH/Students/Chris/SIMULATED_DATA/',
-    'simulated_NO2_filename': 'NO2_12s.xlsx',
-    'simulated_WCPC_filename': 'WCPC.csv',
-    'simulated_O3_filename': 'O3.csv',
-    'simulated_CO_filename': 'CO.csv',
-    'simulated_CO2_filename': 'CO2.csv',
-    'simulated_NO_filename': 'NO.csv'
+    'sim_data_path': 'C:/Users/Chris/Sync/iREACH/Students/Chris/SIMULATED_DATA/',
+    'sim_NO2_filename': 'NO2_12s.xlsx',
+    'sim_WCPC_filename': 'WCPC.csv',
+    'sim_O3_filename': 'O3.csv',
+    'sim_CO_filename': 'CO.csv',
+    'sim_CO2_filename': 'CO2.csv',
+    'sim_NO_filename': 'NO.csv'
 
 }
 
@@ -80,13 +80,14 @@ config['A1_thresh_bump_percentile'] = {
     'CO': '1',
     'CO2': '1',
     'NO': '1'} #set to 0 to disable
+
 config['A1_misc'] = {
     'miscellaneous settings of a1 can be specified here. startup_bypass is the mininum length that the pollutant dequeus must reach until a1 becomes enabled\n'
     'startup_bypass': '30',
-    'post_processing_folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/PEAK/',
-    'post_processing_input_filename': 'IN.csv',
-    'post_processing_output_filename': 'OUT.csv',
-    'post_processing_chunk_size': '3000'
+    'folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/PEAK/',
+    'input_filename': 'IN.csv',
+    'output_filename': 'OUT.csv',
+    'chunk_size': '3000'
 
 }
 config['A1_post_processing_thresh_dump'] = {
@@ -112,12 +113,13 @@ config['AQ_thresh'] = {
 #baseline settings
 config['baseline'] ={
     'settings of the baseline calculation algorithm can be specified here\n'
-    'window_size': '5',
-    'smoothing_index': '5',
+    'window_size': '6',
+    'smoothing_index': '25',
     'chunk_size': '3000',
     'folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/BASELINE/',
     'input_filename': 'IN.csv',
-    'output_filename': 'OUT.csv'
+    'output_filename': 'OUT.csv',
+    'settings_in_name': 'true'
 
 }
 
@@ -127,24 +129,23 @@ config['modbus-tcp_settings'] ={
     'ip_address': '169.254.67.85',
     'port': '502',
     'enable_no2': 'true',
-    'no2_modbus_holding_register': '5',
-    'no2_register_length': '2',
+    'no2_modbus_hr': '5',
+    'no2_hr_length': '2',
     'enable_wcpc': 'false',
-    'wcpc_modbus_holding_register': '',
-    'wcpc_register_length': '',
+    'wcpc_modbus_hr': '',
+    'wcpc_hr_length': '',
     'enable_o3': 'true',
-    'o3_modbus_holding_register': '0',
-    'o3_register_length': '2',
+    'o3_modbus_hr': '0',
+    'o3_hr_length': '2',
     'enable_co': 'true',
-    'co_modbus_holding_register': '7',
-    'co_register_length': '2',
+    'co_modbus_hr': '7',
+    'co_hr_length': '2',
     'enable_co2': 'false',
-    'co2_modbus_holding_register': '',
-    'co2_register_length': '2',
+    'co2_modbus_hr': '',
+    'co2_hr_length': '2',
     'enable_no': 'true',
-    'no_modbus_holding_register': '3',
-    'no_register_length': '2',
-    'random_or_flat_if_disabled': 'flat'
+    'no_modbus_hr': '3',
+    'no_hr_length': '2',
 }
 
 ################
