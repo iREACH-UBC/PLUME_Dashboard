@@ -30,12 +30,12 @@ from configparser import ConfigParser
 #function for testing
 def gen_fake_data():
     threading.Timer(1.0, gen_fake_data).start() #normally 1.0
-    dataset1 = dict(NO2=random.randint(0, 100), time1=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset2 = dict(concentration=random.randint(8000, 9000), time2=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset3 = dict(Ozone=random.randint(0, 100), time3=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset4 = dict(CO=random.randint(0, 100), time4=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset5 = dict(CO2=random.randint(0, 100), time5=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset6 = dict(NO=random.randint(0, 100), time6=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset1 = dict(NO2=random.randint(0, 0.001), time1=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset2 = dict(concentration=random.randint(0, 0.001), time2=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset3 = dict(Ozone=random.randint(0, 0.001), time3=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset4 = dict(CO=random.randint(0, 0.001), time4=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset5 = dict(CO2=random.randint(0, 0.001), time5=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset6 = dict(NO=random.randint(0, 0.001), time6=(datetime.datetime.now()).strftime("%H:%M:%S"))
     conn.set('no2', json.dumps(dataset1))
     conn.set('wcpc', json.dumps(dataset2))
     conn.set('ozone', json.dumps(dataset3))
@@ -50,6 +50,7 @@ def get_modbus_data(ip, port, enable_pollutant, holding_regs, disabled_behaviour
 
     while True:
 
+        print('i')
         if enable_pollutant['o3']:
             ozone_regs = cr1000x.read_holding_registers(holding_regs['o3'][0], holding_regs['o3'][1])  # o3 is 0,2
             ozone_decoder = BinaryPayloadDecoder.fromRegisters(ozone_regs, Endian.Big, wordorder=Endian.Big)
@@ -147,6 +148,7 @@ if __name__ == "__main__":
 
     #disabled_behaviour_setting = parser.get('modbus-tcp_settings', 'random_or_flat_if_disabled')
     disabled_behaviour_setting = 'flat' #manual override
+    disabled_behaviour_setting = 'random'
     if not (disabled_behaviour_setting == 'random' or disabled_behaviour_setting == 'flat'):
         if not (enable_pollutant_setting['no2'] and enable_pollutant_setting['wcpc'] and enable_pollutant_setting['o3'] and enable_pollutant_setting['co'] and enable_pollutant_setting['co2'] and enable_pollutant_setting['no']):
             sys.exit('ERROR: the setting \'random_or_flat_if_disabled\' must be set to either \'random\' or \'flat\'')
@@ -163,5 +165,14 @@ if __name__ == "__main__":
         else:
             print(pollutant+": disabled using \'"+disabled_behaviour_setting+'\' behaviour')
 
-    #gen_fake_data()
-    get_modbus_data(ip_setting, port_setting, enable_pollutant_setting, holding_regs_setting, disabled_behaviour_setting)
+
+    all_disabled = True
+    for i in enable_pollutant_setting:
+        if i == True:
+            all_disabled = False
+            break
+
+    if all_disabled:
+        gen_fake_data()
+    else:
+        get_modbus_data(ip_setting, port_setting, enable_pollutant_setting, holding_regs_setting, disabled_behaviour_setting)

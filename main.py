@@ -1570,17 +1570,13 @@ if __name__ == '__main__':
         if (simulated_or_real[i] != 'real') and (simulated_or_real[i] != 'simulated'):
             sys.exit('ERROR: the setting \"real_or_simulated\" for ' + i + ' must be set to either \"simulated\" or \"real\"')
 
-    all_real = True
-    for i in simulated_or_real:
-        if i == "simulated":
-            all_real = False
-            break
 
-    if not all_real:
-        simulated_data_path = parser.get('real_or_simulated', 'sim_data_path')
-        if (simulated_data_path[-1] != '/'):
-            simulated_data_path += '/'
-        simulated_data_filenames = {
+
+
+    simulated_data_path = parser.get('real_or_simulated', 'sim_data_path')
+    if (simulated_data_path[-1] != '/'):
+        simulated_data_path += '/'
+    simulated_data_filenames = {
             "no2": '',
             "wcpc": '',
             "o3": '',
@@ -1588,18 +1584,19 @@ if __name__ == '__main__':
             "co2": '',
             "no": ''
         }
-        if simulated_or_real['no2'] == 'simulated':
-            simulated_data_filenames['no2'] = simulated_data_path + parser.get('real_or_simulated','sim_NO2_filename')
-        if simulated_or_real['wcpc'] == 'simulated':
-            simulated_data_filenames['wcpc'] = simulated_data_path + parser.get('real_or_simulated','sim_WCPC_filename')
-        if simulated_or_real['o3'] == 'simulated':
-            simulated_data_filenames['o3'] = simulated_data_path + parser.get('real_or_simulated','sim_O3_filename')
-        if simulated_or_real['co'] == 'simulated':
-            simulated_data_filenames['co'] = simulated_data_path + parser.get('real_or_simulated','sim_CO_filename')
-        if simulated_or_real['co2'] == 'simulated':
-            simulated_data_filenames['co2'] = simulated_data_path + parser.get('real_or_simulated','sim_CO2_filename')
-        if simulated_or_real['no'] == 'simulated':
-            simulated_data_filenames['no'] = simulated_data_path + parser.get('real_or_simulated','sim_NO_filename')
+
+    if simulated_or_real['no2'] == 'simulated':
+        simulated_data_filenames['no2'] = simulated_data_path + parser.get('real_or_simulated','sim_NO2_filename')
+    if simulated_or_real['wcpc'] == 'simulated':
+        simulated_data_filenames['wcpc'] = simulated_data_path + parser.get('real_or_simulated','sim_WCPC_filename')
+    if simulated_or_real['o3'] == 'simulated':
+        simulated_data_filenames['o3'] = simulated_data_path + parser.get('real_or_simulated','sim_O3_filename')
+    if simulated_or_real['co'] == 'simulated':
+        simulated_data_filenames['co'] = simulated_data_path + parser.get('real_or_simulated','sim_CO_filename')
+    if simulated_or_real['co2'] == 'simulated':
+        simulated_data_filenames['co2'] = simulated_data_path + parser.get('real_or_simulated','sim_CO2_filename')
+    if simulated_or_real['no'] == 'simulated':
+        simulated_data_filenames['no'] = simulated_data_path + parser.get('real_or_simulated','sim_NO_filename')
 
     #clock variables used for simulated data
     no2_clock_x = 1
