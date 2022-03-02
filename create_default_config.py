@@ -114,8 +114,9 @@ config['AQ_thresh'] = {
 config['baseline'] ={
     'settings of the baseline calculation algorithm can be specified here\n'
     'window_size': '6',
-    'smoothing_index': '25',
-    'chunk_size': '3000',
+    'smoothing_index': '10',
+    'chunk_size': '400',
+    'interlace_chunks': 'true',
     'folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/BASELINE/',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
@@ -134,7 +135,7 @@ config['modbus-tcp_settings'] ={
     'enable_wcpc': 'false',
     'wcpc_modbus_hr': '',
     'wcpc_hr_length': '',
-    'enable_o3': 'false',
+    'enable_o3': 'true',
     'o3_modbus_hr': '0',
     'o3_hr_length': '2',
     'enable_co': 'false',

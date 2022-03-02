@@ -30,12 +30,12 @@ from configparser import ConfigParser
 #function for testing
 def gen_fake_data():
     threading.Timer(1.0, gen_fake_data).start() #normally 1.0
-    dataset1 = dict(NO2=random.randint(0, 0.001), time1=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset2 = dict(concentration=random.randint(0, 0.001), time2=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset3 = dict(Ozone=random.randint(0, 0.001), time3=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset4 = dict(CO=random.randint(0, 0.001), time4=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset5 = dict(CO2=random.randint(0, 0.001), time5=(datetime.datetime.now()).strftime("%H:%M:%S"))
-    dataset6 = dict(NO=random.randint(0, 0.001), time6=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset1 = dict(NO2=random.randint(0, 1), time1=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset2 = dict(concentration=random.randint(0, 1), time2=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset3 = dict(Ozone=random.randint(0, 1), time3=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset4 = dict(CO=random.randint(0, 1), time4=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset5 = dict(CO2=random.randint(0, 1), time5=(datetime.datetime.now()).strftime("%H:%M:%S"))
+    dataset6 = dict(NO=random.randint(0, 1), time6=(datetime.datetime.now()).strftime("%H:%M:%S"))
     conn.set('no2', json.dumps(dataset1))
     conn.set('wcpc', json.dumps(dataset2))
     conn.set('ozone', json.dumps(dataset3))
@@ -167,8 +167,8 @@ if __name__ == "__main__":
 
 
     all_disabled = True
-    for i in enable_pollutant_setting:
-        if i == True:
+    for pollutant in enable_pollutant_setting:
+        if enable_pollutant_setting[pollutant]:
             all_disabled = False
             break
 

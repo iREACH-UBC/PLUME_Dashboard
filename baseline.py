@@ -11,7 +11,7 @@ the average of ALL of the calculated baseline lists
 
 import math
 import csv
-
+import sys
 import numpy as np
 import pandas as pd
 from collections import deque
@@ -49,6 +49,9 @@ parser.read('user_defined_settings.ini')
 setting_window_size = parser.getint('baseline', 'window_size')
 setting_smoothing = parser.getint('baseline', 'smoothing_index')
 queue_size = parser.getint('baseline', 'chunk_size') #effectively "chunk size"
+#max_queue_size = parser.getint('baseline', 'max_chunk_size')
+#min_queue_size = parser.getint('baseline', 'min_chunk_size')
+interlace_chunks = parser.getboolean('baseline','interlace_chunks')
 #is_formatted = parser.getboolean('baseline', 'is_formatted')
 is_formatted = True #manual override
 #col_interval = string_to_list_interval(parser.get('baseline','columns_with_data'))
@@ -65,7 +68,11 @@ if (include_settings_in_filename):
     for i in range(0, len(output_csv)):
         if output_csv[(i):(i+4)].lower() == '.csv':
             filename_no_extension = output_csv[0:i]
-    output_csv = filename_no_extension + ", window_size = "+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing)+'.csv'
+    output_csv = filename_no_extension + ", window_size = "+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing)
+    if interlace_chunks:
+        output_csv += ", interlaced chunks.csv"
+    else:
+        output_csv += '.csv'
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)']
 output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)']
@@ -75,7 +82,45 @@ current_chunk = 0 #global counter, DO NOT CHANGE, KEEP IT SET AT 0
 
 
 
+#helper function for interlaced chunks
+def overwrite_last_half(og_list, more_list):
+    halfway_point = int(0.5*len(og_list))
+    for i in range(halfway_point,len(og_list)):
+        og_list[i] = more_list[i]
+    return og_list
 
+#helper function for interlaced chunks
+def overwrite_first_half(current_list, more_list):
+    halfway_of_more_list = int(0.5*len(more_list))
+    k=0
+    for i in range(halfway_of_more_list, int(1.5*halfway_of_more_list)):
+        current_list[k] = more_list[i]
+        k+=1
+    return current_list
+
+
+#helper function to check if input is a whole number
+def is_whole(input):
+    diff = input-int(input)
+    if diff == 0:
+        return True
+    else:
+        return False
+
+#helper function to count the number of rows in a CSV, used for determining optimal chunk size for baseline
+def csv_count_rows(csv_filename, column_names, chunk_size):
+    chunk = 0
+    result = 0
+    while True:
+        csv_data = pd.read_csv(csv_filename, names=column_names, skiprows=(1 + chunk * chunk_size), nrows=chunk_size)
+        row_list = csv_data["Row"].to_list()
+        result += len(row_list)
+
+        if len(row_list) < chunk_size:
+            return result
+            break
+        else:
+            chunk += 1
 
 #helper function to interpolate the "-" characters into numbers
 def interpolate(input_pass):
@@ -196,7 +241,120 @@ def compute_baseline(data_chunk, window_size, smoothing):
 
     return output_list
 
-if (is_formatted == True): #this is the code to use, the else part is not working
+
+'''
+#determining the ideal queue size
+row_count = csv_count_rows(filename, col_names, 1000)
+row_count_og = row_count
+i=1
+while True:
+    #testing current row_count to see if a good i exists
+    while(row_count/i > max_queue_size):
+        i += 1
+        if (row_count/(i+1) < min_queue_size):
+            break
+
+    #break if good i is found for current row_count, othwerwise try row_count-1
+    if is_whole(row_count/i):
+        print("ideal chunk size is found to be "+str(int(row_count/i))+" using row count of "+str(row_count)+", thus making "+str(i)+' chunk(s)')
+        break
+    else:
+        print("row count of "+str(row_count)+" cannot be divided into chunks of equal size within min and max chunk size settings, now subtracting 1 from row count and trying again")
+        if(i == row_count/2):
+            sys.exit("unacceptably low min-max chunk size range")
+        row_count -= 1
+queue_size = int(row_count/i)
+'''
+
+if interlace_chunks:
+    while True:
+        #read in the current chunk
+        data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
+
+        #convert current chunk to lists
+        no2_list = data["NO2 (ppb)"].to_list()
+        wcpc_list = data["WCPC (#/cm^3)"].to_list()
+        o3_list = data["O3 (ppb)"].to_list()
+        co_list = data["CO (ppb)"].to_list()
+        co2_list = data["CO2 (ppm)"].to_list()
+        no_list = data['NO (ppb)'].to_list()
+        row_list = data["Row"].to_list()
+        time_list = data["Time"].to_list()
+
+        #compute baseline for current chunk and save as it's own list
+        no2_baseline = compute_baseline(no2_list,setting_window_size,setting_smoothing)
+        wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
+        o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
+        co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
+        co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
+        no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+
+        #check if there's data from previous chunk that we can use for interlacing
+        if (current_chunk != 0):
+            if more_lists_full:
+                no2_baseline = overwrite_first_half(no2_baseline,no2_baseline_more)
+                wcpc_baseline = overwrite_first_half(wcpc_baseline, wcpc_baseline_more)
+                o3_baseline = overwrite_first_half(o3_baseline, o3_baseline_more)
+                co_baseline = overwrite_first_half(co_baseline, co_baseline_more)
+                co2_baseline = overwrite_first_half(co2_baseline, co2_baseline_more)
+                no_baseline = overwrite_first_half(no_baseline, no_baseline_more)
+
+
+        #check if there's data ahead that we can use for interlacing
+        if len(row_list) == queue_size:
+            # read in current chunk with the first half of the next chunk
+            data_more = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=int(2 * queue_size))
+
+            #save this increased chunk to new lists
+            no2_list_more = data_more["NO2 (ppb)"].to_list()
+            wcpc_list_more = data_more["WCPC (#/cm^3)"].to_list()
+            o3_list_more = data_more["O3 (ppb)"].to_list()
+            co_list_more = data_more["CO (ppb)"].to_list()
+            co2_list_more = data_more["CO2 (ppm)"].to_list()
+            no_list_more = data_more['NO (ppb)'].to_list()
+            row_list_more = data_more["Row"].to_list()
+
+            # label current more lists as full or not
+            if len(row_list_more) == (2*queue_size):
+                more_lists_full = True
+            else:
+                more_lists_full = False
+
+            #compute baseline of increased chunks
+            no2_baseline_more = compute_baseline(no2_list_more, setting_window_size, setting_smoothing)
+            wcpc_baseline_more = compute_baseline(wcpc_list_more, setting_window_size, setting_smoothing)
+            o3_baseline_more = compute_baseline(o3_list_more, setting_window_size, setting_smoothing)
+            co_baseline_more = compute_baseline(co_list_more, setting_window_size, setting_smoothing)
+            co2_baseline_more = compute_baseline(co2_list_more, setting_window_size, setting_smoothing)
+            no_baseline_more = compute_baseline(no_list_more, setting_window_size, setting_smoothing)
+
+            #override second half of baseline lists with the corresponding value in its corresponding baseline_more list
+            no2_baseline = overwrite_last_half(no2_baseline, no2_baseline_more)
+            wcpc_baseline = overwrite_last_half(wcpc_baseline, wcpc_baseline_more)
+            o3_baseline = overwrite_last_half(o3_baseline, o3_baseline_more)
+            co_baseline = overwrite_last_half(co_baseline, co_baseline_more)
+            co2_baseline = overwrite_last_half(co2_baseline, co2_baseline_more)
+            no_baseline = overwrite_last_half(no_baseline, no_baseline_more)
+
+        with open(output_csv,"a",newline='') as f:
+            w = csv.writer(f)
+
+            if current_chunk == 0:
+                w.writerow(output_cols)
+
+            for i in range(0,len(row_list)):
+                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i] ])
+
+        # break loop if we're on the last chunk, otherwise go to next chunk
+        if len(row_list) < queue_size:
+            print("chunk "+str(current_chunk+1)+" written")
+            sys.exit()
+            break
+        else:
+            print("chunk "+str(current_chunk+1)+" written")
+            current_chunk += 1
+
+if (is_formatted == True and (interlace_chunks == False)): #this is the code to use, the else part is not working
     while True:
         #read in the current chunk
         data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
