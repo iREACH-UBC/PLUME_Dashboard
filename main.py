@@ -25,6 +25,7 @@ import datetime as dt
 import dash_daq as daq
 import redis
 import openpyxl
+import pandas as pd
 import numpy as np
 from configparser import ConfigParser
 from pathlib import Path
@@ -1047,12 +1048,17 @@ def get_no2_data(n):
             global no2_clock_x
             global no2_clock_y
 
-            #grabbing simulated data
-            xlsx_file = Path('SimData', simulated_data_filenames['no2'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            no2_clock_y = sheet["B" + str(no2_clock_x)].value
-            no2_trace_y.append(no2_clock_y)
+
+            # grabbing simulated data
+            if simulated_data_filetypes['no2'] == 'csv':
+                no2_clock_y = no2_sim_csv[no2_clock_x-1]
+                no2_trace_y.append(no2_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['no2'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                no2_clock_y = sheet["B" + str(no2_clock_x)].value
+                no2_trace_y.append(no2_clock_y)
         else:
             no2_trace_y.append(redisdata['NO2'])
 
@@ -1103,12 +1109,16 @@ def get_no_data(n):
             global no_clock_x
             global no_clock_y
 
-            #grab simulated data
-            xlsx_file = Path('SimData', simulated_data_filenames['no'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            no_clock_y = sheet["B" + str(no_clock_x)].value
-            no_trace_y.append(no_clock_y)
+            # grab simulated data
+            if simulated_data_filetypes['no'] == 'csv':
+                no_clock_y = no_sim_csv[no_clock_x-1]
+                no_trace_y.append(no_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['no'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                no_clock_y = sheet["B" + str(no_clock_x)].value
+                no_trace_y.append(no_clock_y)
         else:
             no_trace_y.append(redisdata['NO'])
 
@@ -1157,11 +1167,15 @@ def get_wcpc_data(n):
             global wcpc_clock_y
 
             #grabbing our simulated data
-            xlsx_file = Path('SimData', simulated_data_filenames['wcpc'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            wcpc_clock_y = sheet["B" + str(wcpc_clock_x)].value
-            wcpc_trace_y.append(wcpc_clock_y)
+            if simulated_data_filetypes['wcpc'] == 'csv':
+                wcpc_clock_y = wcpc_sim_csv[wcpc_clock_x-1]
+                wcpc_trace_y.append(wcpc_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['wcpc'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                wcpc_clock_y = sheet["B" + str(wcpc_clock_x)].value
+                wcpc_trace_y.append(wcpc_clock_y)
         else:
             wcpc_trace_y.append(redisdata['concentration'])
 
@@ -1209,11 +1223,16 @@ def get_2b_data(n):
             global o3_clock_x
             global o3_clock_y
 
-            xlsx_file = Path('SimData', simulated_data_filenames['o3'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            o3_clock_y = sheet["B" + str(o3_clock_x)].value
-            o3_trace_y.append(o3_clock_y)
+
+            if simulated_data_filetypes['o3'] == 'csv':
+                o3_clock_y = o3_sim_csv[o3_clock_x-1]
+                o3_trace_y.append(o3_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['o3'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                o3_clock_y = sheet["B" + str(o3_clock_x)].value
+                o3_trace_y.append(o3_clock_y)
         else:
             o3_trace_y.append(redisdata['Ozone'])
 
@@ -1259,11 +1278,15 @@ def get_teledyne_CO_data(n):
             global co_clock_x
             global co_clock_y
 
-            xlsx_file = Path('SimData', simulated_data_filenames['co'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            co_clock_y = sheet["B" + str(co_clock_x)].value
-            co_trace_y.append(co_clock_y)
+            if simulated_data_filetypes['co'] == 'csv':
+                co_clock_y = co_sim_csv[co_clock_x-1]
+                co_trace_y.append(co_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['co'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                co_clock_y = sheet["B" + str(co_clock_x)].value
+                co_trace_y.append(co_clock_y)
         else:
             co_trace_y.append(redisdata['CO'])
 
@@ -1305,11 +1328,15 @@ def get_licor_data(n):
             global co2_clock_x
             global co2_clock_y
 
-            xlsx_file = Path('SimData', simulated_data_filenames['co2'])
-            wb_obj = openpyxl.load_workbook(xlsx_file)
-            sheet = wb_obj.active
-            co2_clock_y = sheet["B" + str(co2_clock_x)].value
-            co2_trace_y.append(co2_clock_y)
+            if simulated_data_filetypes['co2'] == 'csv':
+                co2_clock_y = co2_sim_csv[co2_clock_x-1]
+                co2_trace_y.append(co2_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['co2'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                co2_clock_y = sheet["B" + str(co2_clock_x)].value
+                co2_trace_y.append(co2_clock_y)
         else:
             co2_trace_y.append(redisdata['CO2'])
 
@@ -1556,7 +1583,7 @@ if __name__ == '__main__':
     "co2": parser.getint('AQ_thresh','CO2'),
     "no": parser.getint('AQ_thresh','NO')}
 
-    #simulated data settings
+    #simulated or real switch
     simulated_or_real = {
         "no2": parser.get('real_or_simulated', 'NO2'),
         "wcpc": parser.get('real_or_simulated', 'WCPC'),
@@ -1566,13 +1593,12 @@ if __name__ == '__main__':
         "no": parser.get('real_or_simulated', 'NO')
     }
 
+    #simulated or real switch error handling
     for i in simulated_or_real:
         if (simulated_or_real[i] != 'real') and (simulated_or_real[i] != 'simulated'):
             sys.exit('ERROR: the setting \"real_or_simulated\" for ' + i + ' must be set to either \"simulated\" or \"real\"')
 
-
-
-
+    #simulated data path and filenames
     simulated_data_path = parser.get('real_or_simulated', 'sim_data_path')
     if (simulated_data_path[-1] != '/'):
         simulated_data_path += '/'
@@ -1584,7 +1610,6 @@ if __name__ == '__main__':
             "co2": '',
             "no": ''
         }
-
     if simulated_or_real['no2'] == 'simulated':
         simulated_data_filenames['no2'] = simulated_data_path + parser.get('real_or_simulated','sim_NO2_filename')
     if simulated_or_real['wcpc'] == 'simulated':
@@ -1597,6 +1622,51 @@ if __name__ == '__main__':
         simulated_data_filenames['co2'] = simulated_data_path + parser.get('real_or_simulated','sim_CO2_filename')
     if simulated_or_real['no'] == 'simulated':
         simulated_data_filenames['no'] = simulated_data_path + parser.get('real_or_simulated','sim_NO_filename')
+
+    #simulated data file types
+    simulated_data_filetypes = {
+        "no2": '',
+        "wcpc": '',
+        "o3": '',
+        "co": '',
+        "co2": '',
+        "no": ''
+    }
+
+    def get_extension(filename):
+        last_dot_index = 0
+        for i in range(0, len(filename)):
+            if filename[i] == '.':
+                last_dot_index = i
+        return filename[(last_dot_index+1):len(filename)]
+
+    for i in simulated_data_filetypes:
+        simulated_data_filetypes[i] = get_extension(simulated_data_filenames[i])
+        if ((simulated_data_filetypes[i] != 'xlsx') and (simulated_data_filetypes[i] != 'csv')) and (simulated_or_real[i] == False):
+            sys.exit('ERROR: the simulated data file for ' + i + ' must be either a \".xlsx\" or \".csv\" file')
+
+    #simulated data CSV handling
+    if simulated_or_real['no2'] and simulated_data_filetypes['no2'] == 'csv':
+        no2_sim_csv_df = pd.read_csv(simulated_data_filenames['no2'], names=['index','value'])
+        no2_sim_csv = no2_sim_csv_df["value"].to_list()
+    if simulated_or_real['wcpc'] and simulated_data_filetypes['wcpc'] == 'csv':
+        wcpc_sim_csv_df = pd.read_csv(simulated_data_filenames['wcpc'], names=['index','value'])
+        wcpc_sim_csv = wcpc_sim_csv_df["value"].to_list()
+    if simulated_or_real['o3'] and simulated_data_filetypes['o3'] == 'csv':
+        o3_sim_csv_df = pd.read_csv(simulated_data_filenames['o3'], names=['index','value'])
+        o3_sim_csv = o3_sim_csv_df["value"].to_list()
+    if simulated_or_real['co'] and simulated_data_filetypes['co'] == 'csv':
+        co_sim_csv_df = pd.read_csv(simulated_data_filenames['co'], names=['index','value'])
+        co_sim_csv = co_sim_csv_df["value"].to_list()
+    if simulated_or_real['co2'] and simulated_data_filetypes['co2'] == 'csv':
+        co2_sim_csv_df = pd.read_csv(simulated_data_filenames['co2'], names=['index','value'])
+        co2_sim_csv = co2_sim_csv_df["value"].to_list()
+    if simulated_or_real['no'] and simulated_data_filetypes['no'] == 'csv':
+        no_sim_csv_df = pd.read_csv(simulated_data_filenames['no'], names=['index','value'])
+        no_sim_csv = no_sim_csv_df["value"].to_list()
+
+
+
 
     #clock variables used for simulated data
     no2_clock_x = 1
