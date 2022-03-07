@@ -24,7 +24,7 @@ config['y-ranges'] = {
 #log files directory
 config['log_directory'] = {
     'specify the directory for the dashboard to create the event markers and sensor transcript csv files in\n'
-    'log_files_path':'C:/Users/Chris/Sync/iREACH/Students/Chris/Test1'
+    'log_files_path':'C:/Users/Chris/Desktop/Dashboard/LOG_FILES'
 }
 
 #misc, including algorithm circuit breaker
@@ -43,7 +43,7 @@ config['real_or_simulated'] = {
     'CO': 'real',
     'CO2': 'real',
     'NO': 'real',
-    'sim_data_path': 'C:/Users/Chris/Sync/iREACH/Students/Chris/SIMULATED_DATA/',
+    'sim_data_path': 'C:/Users/Chris/Desktop/Dashboard/SIMULATED_DATA',
     'sim_NO2_filename': 'NO2_sim.csv',
     'sim_WCPC_filename': 'WCPC.csv',
     'sim_O3_filename': 'O3.csv',
@@ -84,7 +84,7 @@ config['A1_thresh_bump_percentile'] = {
 config['A1_misc'] = {
     'miscellaneous settings of a1 can be specified here. startup_bypass is the mininum length that the pollutant dequeus must reach until a1 becomes enabled\n'
     'startup_bypass': '30',
-    'folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/PEAK/',
+    'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/PEAK',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
     'chunk_size': '3000'
@@ -117,7 +117,7 @@ config['baseline'] ={
     'smoothing_index': '10',
     'chunk_size': '400',
     'interlace_chunks': 'true',
-    'folder_directory': 'C:/Users/Chris/Sync/iREACH/Students/Chris/BASELINE/',
+    'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/BASELINE',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
     'settings_in_name': 'true'
