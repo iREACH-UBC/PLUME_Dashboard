@@ -1,6 +1,6 @@
 """
-Create by Julian Fawkes, 2020, and Chris Kelly, 2021
-
+Created by Julian Fawkes, 2020, and Chris Kelly, 2021
+Contributions and minor edits by: Naomi Zimmerman, Melanie MacArthur, Stefan Colbow, Rachel Haberman, and Davi Monticelli
 PLUME Dashboard - A browser-based pollutant data visualization program built using Dash. The dashboard pulls data
 from a DAQ script using a locally-hosted redis server. Each instrument sends data using a
 different transfer protocol and is taken in by a CR1000X datalogger.
@@ -17,7 +17,14 @@ from dash.dependencies import Output, Input, State
 from plotly.subplots import make_subplots
 from collections import deque
 import collections
-# from db.api import get_wind_data_by_id
+#from db import get_wind_data_by_id
+#from db.api import get_wind_data, get_wind_data_by_id
+
+#this is a test for wind plotting
+import plotly.express as px
+#import plotly.graph_objects as go
+#test
+
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -58,12 +65,15 @@ instrumentdict = [
     {"label": "CO", "value": "CO"},
     {"label": "CO2", "value": "CO2"},
     {"label": "NO", "value": "NO"},
+    {"label": "WS", "value": "WS"},
+    {"label": "WD", "value": "WD"},
 ]
 
 #unit dictionary, this MUST be matched with instrumentdict
 labeldict = {"NO2": "Concentration (ppb)", "WCPC": "Concentration (#/cm\u00B3)",
-             "O3": "Concentration (ppb)", "CO": "Concentration (ppb)",
-             "CO2": "Concentration (ppm)", "NO": "Concentration (ppb)"}
+             "O3": "Concentration (ppb)", "CO": "Concentration (ppm)",
+             "CO2": "Concentration (ppm)", "NO": "Concentration (ppb)",
+             "WS": "Wind-speed (m/s)", "WD": "Wind-direction (degrees)"}
 
 #define our deques
 no2_trace_y = deque([0], maxlen=trace_length)
@@ -78,6 +88,10 @@ co2_trace_y = deque([0], maxlen=trace_length)
 co2_trace_x = deque([0], maxlen=trace_length)
 no_trace_y = deque([0], maxlen=trace_length)
 no_trace_x = deque([0], maxlen=trace_length)
+ws_trace_y = deque([0], maxlen=trace_length)
+ws_trace_x = deque([0], maxlen=trace_length)
+wd_trace_y = deque([0], maxlen=trace_length)
+wd_trace_x = deque([0], maxlen=trace_length)
 
 #define our container deques, these are used to pass data to the live plot
 no2_trace_container = deque([dict(x=0, y=0)], maxlen=1)
@@ -86,6 +100,8 @@ o3_trace_container = deque([dict(x=0, y=0)], maxlen=1)
 co_trace_container = deque([dict(x=0, y=0)], maxlen=1)
 co2_trace_container = deque([dict(x=0, y=0)], maxlen=1)
 no_trace_container = deque([dict(x=0, y=0)], maxlen=1)
+ws_trace_container = deque([dict(x=0, y=0)], maxlen=1)
+wd_trace_container = deque([dict(x=0, y=0)], maxlen=1)
 
 #helper function for settings loading, changes "int,int" into [int,int]
 def string_to_list_interval(string_in):
@@ -112,6 +128,8 @@ def string_to_list_interval(string_in):
     result.append(int(lower))
     result.append(int(upper))
     return result
+
+foldend = 0
 
 
 '''###################################
@@ -285,6 +303,8 @@ def zero_flush():
     global co_trace_y
     global co2_trace_y
     global no_trace_y
+    global ws_trace_y
+    global wd_trace_y
 
     #delete the leftmost entry (the trailing 0)
     print("flushing zeros")
@@ -294,6 +314,8 @@ def zero_flush():
     co_trace_y.popleft()
     co2_trace_y.popleft()
     no_trace_y.popleft()
+    ws_trace_y.popleft()
+    wd_trace_y.popleft()
 
     #prevent function from running again
     left_zero_popped = True
@@ -531,12 +553,14 @@ livebar = dbc.Card(
         create_graduatedbar_helper("CO"),
         create_graduatedbar_helper("CO2"),
         create_graduatedbar_helper("NO"),
+        create_graduatedbar_helper("WS"),
+        create_graduatedbar_helper("WD"),
     ],
     style={"padding": "5px 5px 5px 5px"},
     className="h-100"
 )
 
-#wind direction stuff, i have no idea how this works, it's disabled at the moment
+#wind direction stuff
 wind_direction = dbc.Card(
     [
         html.H5(
@@ -547,7 +571,7 @@ wind_direction = dbc.Card(
             config={'displayModeBar': False},
             figure=dict(
                 layout=dict(
-                    plot_bgcolor=app_color["graph_bg"],
+                   plot_bgcolor=app_color["graph_bg"],
                     paper_bgcolor=app_color["graph_bg"],
                 )
             ),
@@ -584,12 +608,12 @@ app.layout = dbc.Container(
                         # Top
                         html.Div(
                             livebar,
-                            style={"height": "56vh"}
+                            style={"height": "52vh"}
                         ),
                         # Bottom
                         html.Div(
                             wind_direction,
-                            style={"height": "40vh"}
+                            style={"height": "44vh"}
                         ),
                     ],
                     width=3,
@@ -645,19 +669,21 @@ def auto_event_mark(auto_event_name,algorithm,pollutant):
         file_exists = os.path.isfile(filename)
         with open(filename, 'a', newline='\n') as file, open(txt_filename, 'a', newline='\n') as txt_file:
             # Create a dictionary with our seven csv columns
-            markerdict = dict.fromkeys(['Type','Pollutant','Event Tag', 'Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppb)', 'CO2 (ppm)','NO (ppb)'])
+            markerdict = dict.fromkeys(['Type','Pollutant','Event Tag', 'Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppm)', 'CO2 (ppm)','NO (ppb)','WS (m/s)','WD (degrees)'])
 
             # Populate our columns with the user input and current time and current values of pollutants
             markerdict['Type'] = algorithm
             markerdict['Pollutant'] = pollutant
-            markerdict['Time'] = (dt.datetime.now()).strftime("%H:%M:%S")
+            markerdict['Time'] = (dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
             markerdict['Event Tag'] = auto_event_name
             markerdict['NO2 (ppb)'] = no2_trace_y[-1]
             markerdict['WCPC (#/cm^3)'] = wcpc_trace_y[-1]
             markerdict['O3 (ppb)'] = o3_trace_y[-1]
-            markerdict['CO (ppb)'] = co_trace_y[-1]
+            markerdict['CO (ppm)'] = co_trace_y[-1]
             markerdict['CO2 (ppm)'] = co2_trace_y[-1]
             markerdict['NO (ppb)'] = no_trace_y[-1]
+            markerdict['WS (m/s)'] = ws_trace_y[-1]
+            markerdict['WD (degrees)'] = wd_trace_y[-1]
 
             # Write our data to our csv
             writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
@@ -665,7 +691,7 @@ def auto_event_mark(auto_event_name,algorithm,pollutant):
             # prepare a string to be written to our txt and then write to it
             txt_string = str((dt.datetime.now()).strftime("%H:%M:%S")) + ", " + auto_event_name + ", " + str(
                 no2_trace_y[-1]) + ", " + str(wcpc_trace_y[-1]) + ", " + str(o3_trace_y[-1]) + ", " + str(
-                co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) +', ' +str(no_trace_y[-1]) +"\n"
+                co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) +', ' +str(no_trace_y[-1]) +', ' +str(ws_trace_y[-1]) +', ' +str(wd_trace_y[-1]) +"\n"
             txt_file.write(txt_string)
 
             # If the log file did not already exist, write the column headers.
@@ -694,25 +720,27 @@ def sensor_dump():
         file_exists = os.path.isfile(filename)
         with open(filename, 'a', newline='\n') as file, open(txt_filename, 'a', newline='\n') as txt_file:
             # Create a dictionary with our seven csv columns
-            markerdict = dict.fromkeys(['Row','Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppb)', 'CO2 (ppm)','NO (ppb)'])
+            markerdict = dict.fromkeys(['Row','Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppm)', 'CO2 (ppm)','NO (ppb)','WS (m/s)','WD (degrees)'])
 
             # Populate our columns with the user input and current time and current values of pollutants
             markerdict['Row'] = index_clock
-            markerdict['Time'] = (dt.datetime.now()).strftime("%H:%M:%S")
+            markerdict['Time'] = (dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
             markerdict['NO2 (ppb)'] = no2_trace_y[-1]
             markerdict['WCPC (#/cm^3)'] = wcpc_trace_y[-1]
             markerdict['O3 (ppb)'] = o3_trace_y[-1]
-            markerdict['CO (ppb)'] = co_trace_y[-1]
+            markerdict['CO (ppm)'] = co_trace_y[-1]
             markerdict['CO2 (ppm)'] = co2_trace_y[-1]
             markerdict['NO (ppb)'] = no_trace_y[-1]
+            markerdict['WS (m/s)'] = ws_trace_y[-1]
+            markerdict['WD (degrees)'] = wd_trace_y[-1]
 
             # Write our data to our csv
             writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
 
             # prepare a string to be written to our txt and then write to it
-            txt_string = str(index_clock)+", "+str((dt.datetime.now()).strftime("%H:%M:%S")) + ", " + str(
-                no2_trace_y[-1]) + ", " + str(wcpc_trace_y[-1]) + ", " + str(o3_trace_y[-1]) + ", " + str(
-                co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) + ", "+ str(no_trace_y[-1])  + "\n"
+            txt_string = str(index_clock)+", "+str((dt.datetime.now()).strftime("%H:%M:%S")) + ", " +str(
+                no2_trace_y[-1]) + ", " + str(wcpc_trace_y[-1]) + ", " + str(o3_trace_y[-1]) + ", " +str(
+                co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) + ", "+ str(no_trace_y[-1])  +', ' +str(ws_trace_y[-1]) +', ' +str(wd_trace_y[-1]) +"\n"
             txt_file.write(txt_string)
             index_clock += 1
 
@@ -960,7 +988,7 @@ def mark_event(n, eventtag):
                 file_exists = os.path.isfile(filename)
                 with open(filename, 'a', newline='\n') as file, open(txt_filename, 'a',newline='\n') as txt_file:
                     # Create a dictionary with our seven csv columns
-                    markerdict = dict.fromkeys(['Type','Pollutant','Event Tag', 'Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppb)', 'CO2 (ppm)','NO (ppb)'])
+                    markerdict = dict.fromkeys(['Type','Pollutant','Event Tag', 'Time','NO2 (ppb)', 'WCPC (#/cm^3)', 'O3 (ppb)', 'CO (ppm)', 'CO2 (ppm)','NO (ppb)','WS (m/s)','WD (degrees)'])
 
 
                     # Populate our columns with the user input and current time and current values of pollutants
@@ -972,7 +1000,7 @@ def mark_event(n, eventtag):
                     #resetting the valid command switch
                     is_valid_command = False
                     markerdict['Pollutant'] = "-"
-                    markerdict['Time'] = (dt.datetime.now()).strftime("%H:%M:%S")
+                    markerdict['Time'] = (dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
 
                     if toggle_type == ('(A1 OFF)' or '(A1 ON)' or '(AQ OFF)' or '(AQ ON)'):
                         markerdict['Event Tag'] = str(eventtag)+' '+str(toggle_type)
@@ -982,15 +1010,17 @@ def mark_event(n, eventtag):
                     markerdict['NO2 (ppb)'] = no2_trace_y[-1]
                     markerdict['WCPC (#/cm^3)'] = wcpc_trace_y[-1]
                     markerdict['O3 (ppb)'] = o3_trace_y[-1]
-                    markerdict['CO (ppb)'] = co_trace_y[-1]
+                    markerdict['CO (ppm)'] = co_trace_y[-1]
                     markerdict['CO2 (ppm)'] = co2_trace_y[-1]
                     markerdict['NO (ppb)'] = no_trace_y[-1]
+                    markerdict['WS (m/s)'] = ws_trace_y[-1]
+                    markerdict['WD (degrees)'] = wd_trace_y[-1]
 
                     # Write our data to our csv
                     writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
 
                     #prepare a string to be written to our txt and then write to it
-                    txt_string = str((dt.datetime.now()).strftime("%H:%M:%S"))+", "+str(eventtag)+", "+str(no2_trace_y[-1])+", "+str(wcpc_trace_y[-1])+", "+str(o3_trace_y[-1])+", "+str(co_trace_y[-1])+", "+str(co2_trace_y[-1])+', '+str(no_trace_y[-1])+"\n"
+                    txt_string = str((dt.datetime.now()).strftime("%H:%M:%S"))+", "+str(eventtag)+", "+str(no2_trace_y[-1])+", "+str(wcpc_trace_y[-1])+", "+str(o3_trace_y[-1])+", "+str(co_trace_y[-1])+", "+str(co2_trace_y[-1])+', '+str(no_trace_y[-1])+', '+str(ws_trace_y[-1])+', '+str(wd_trace_y[-1])+"\n"
                     txt_file.write(txt_string)
 
                     # If the log file did not already exist, write the column headers.
@@ -1013,6 +1043,7 @@ def mark_event(n, eventtag):
     # If the button has not been pressed, return a 'not either' response
     else:
         return None, None
+
 avs=0
 
 
@@ -1022,6 +1053,23 @@ avs=0
 abc=1
 #these functions all use callbacks which is how we make the dashboard "live". They grab data from Redis
 
+#helper function for autoscale
+def compute_interval(input_trace,pollutant):
+    global autoscale_padding_dict
+    print(input_trace)
+    min_entry = min(input_trace)
+    max_entry = max(input_trace)
+    range = max_entry - min_entry
+    padding_amount = range * ( autoscale_padding_dict[pollutant]/100 )
+
+    upper_bound = max_entry + padding_amount
+    lower_bound = min_entry - padding_amount
+
+    if lower_bound < 0:
+        lower_bound = 0
+
+    return [int(lower_bound), int(upper_bound)]
+
 #get_no2_data function is ALSO responsible for calling our sensor_dump and zero_flush functions
 @app.callback([Output('NO2-bar', 'value'),
                Output('NO2-bar-text', 'children')],
@@ -1029,7 +1077,7 @@ abc=1
 def get_no2_data(n):
     #set expected min and max for graduated bar
     minimumvalue = 0
-    maximumvalue = 100
+    maximumvalue = 200
 
     #connect to redis
     conn = redis.Redis('localhost')
@@ -1076,6 +1124,14 @@ def get_no2_data(n):
     sensor_dump()
     zero_flush()
 
+
+    ############ AUTOSCALE STUFF ###############
+    if enable_autoscale_dict['NO2'] and len(no2_trace_y) > 3:
+        global y_range_dict
+        new_interval = compute_interval(no2_trace_y,'NO2')
+        y_range_dict['NO2'] = new_interval
+    ############################################
+
     if simulated_or_real['no2'] == 'simulated':
         no2_clock_x += 1
         return no2_clock_y, \
@@ -1090,7 +1146,7 @@ def get_no2_data(n):
 def get_no_data(n):
     #expected min and max for graduated bars
     minimumvalue = 0
-    maximumvalue = 100
+    maximumvalue = 200
 
     #connect to redis
     conn = redis.Redis('localhost')
@@ -1132,6 +1188,12 @@ def get_no_data(n):
         A1ap(no_trace_y, "no")
         AQap(no_trace_y, "no")
 
+        if enable_autoscale_dict['NO'] and len(no_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(no_trace_y, 'NO')
+            y_range_dict['NO'] = new_interval
+
+
         #return either real data or our simulated data
         if simulated_or_real['no'] == 'simulated':
             no_clock_x += 1
@@ -1146,8 +1208,8 @@ def get_no_data(n):
               Input('daq-interval', 'n_intervals'))
 def get_wcpc_data(n):
     #expected min and max for graduated bars
-    minimumvalue = 7000
-    maximumvalue = 10000
+    minimumvalue = 1000
+    maximumvalue = 20000
 
     #connect to redis
     conn = redis.Redis('localhost')
@@ -1188,6 +1250,11 @@ def get_wcpc_data(n):
         #calling our algorithms
         A1ap(wcpc_trace_y, "wcpc")
         AQap(wcpc_trace_y, "wcpc")
+
+        if enable_autoscale_dict['WCPC'] and len(wcpc_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(wcpc_trace_y, 'WCPC')
+            y_range_dict['WCPC'] = new_interval
 
         #return simulated data or real data
         if simulated_or_real['wcpc'] == 'simulated':
@@ -1245,6 +1312,12 @@ def get_2b_data(n):
         A1ap(o3_trace_y, "o3")
         AQap(o3_trace_y, "o3")
 
+        if enable_autoscale_dict['O3'] and len(o3_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(o3_trace_y, 'O3')
+            y_range_dict['O3'] = new_interval
+
+
         if simulated_or_real['o3'] == 'simulated':
             o3_clock_x += 1
             return o3_clock_y, \
@@ -1259,7 +1332,7 @@ def get_2b_data(n):
 def get_teledyne_CO_data(n):
     #min and max for graduated bar
     minimumvalue = 0
-    maximumvalue = 100
+    maximumvalue = 20
 
     #connect to redis
     conn = redis.Redis('localhost')
@@ -1298,11 +1371,17 @@ def get_teledyne_CO_data(n):
         A1ap(co_trace_y, "co")
         AQap(co_trace_y, "co")
 
+        if enable_autoscale_dict['CO'] and len(co_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(co_trace_y, 'CO')
+            y_range_dict['CO'] = new_interval
+
         if simulated_or_real['co'] == 'simulated':
             co_clock_x += 1
             return co_clock_y, \
                    str(co_clock_y) + " " + labeldict['CO'].split(' ')[1]
-        return (redisdata['CO'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
+        else:
+            return (redisdata['CO'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
                str(redisdata['CO']) + " " + labeldict['CO'].split(' ')[1]
 
 @app.callback([Output('CO2-bar', 'value'),
@@ -1311,7 +1390,7 @@ def get_teledyne_CO_data(n):
 def get_licor_data(n):
     #expected min and max for graduated bar
     minimumvalue = 0
-    maximumvalue = 100
+    maximumvalue = 1000
 
     #connect to redis and pull data
     conn = redis.Redis('localhost')
@@ -1348,12 +1427,138 @@ def get_licor_data(n):
         A1ap(co2_trace_y, "co2")
         AQap(co2_trace_y, "co2")
 
+        if enable_autoscale_dict['CO2'] and len(co2_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(co2_trace_y, 'CO2')
+            y_range_dict['CO2'] = new_interval
+
+
+
         if simulated_or_real['co2'] == 'simulated':
             co2_clock_x += 1
             return co2_clock_y, \
                    str(co2_clock_y) + " " + labeldict['CO2'].split(' ')[1]
-        return (redisdata['CO2'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
+        else:
+            return (redisdata['CO2'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
                str(redisdata['CO2']) + " " + labeldict['CO2'].split(' ')[1]
+
+#Below follow the @app.callback of other pollutants but for 'Wind Speed'
+#It is an alternative in case the wind rose plot fails
+
+@app.callback([Output('WS-bar', 'value'),
+               Output('WS-bar-text', 'children')],
+              Input('daq-interval', 'n_intervals'))
+def get_wind_speed_data(n):
+    #expected min and max for graduated bar
+    minimumvalue = 0
+    maximumvalue = 20
+
+    #connect to redis and pull data
+    conn = redis.Redis('localhost')
+    redisdata = json.loads(conn.get('ws'))
+
+    #check for duplicates
+    if redisdata['time7'] == ws_trace_x[-1]:
+        raise dash.exceptions.PreventUpdate
+    else:
+        #simulated data stuff
+        global simulated_or_real
+        if simulated_or_real['ws'] == 'simulated':
+            global simulated_data_filenames
+            global ws_clock_x
+            global ws_clock_y
+
+            if simulated_data_filetypes['ws'] == 'csv':
+                ws_clock_y = ws_sim_csv[ws_clock_x-1]
+                ws_trace_y.append(ws_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['ws'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                ws_clock_y = sheet["B" + str(ws_clock_x)].value
+                ws_trace_y.append(ws_clock_y)
+        else:
+            ws_trace_y.append(redisdata['WS'])
+
+        ws_trace_x.append(redisdata['time7'])
+
+        newvalue = dict(x=ws_trace_x, y=ws_trace_y)
+        ws_trace_container.append(newvalue)
+
+        A1ap(ws_trace_y, "ws")
+        AQap(ws_trace_y, "ws")
+
+        if enable_autoscale_dict['WS'] and len(ws_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(ws_trace_y, 'WS')
+            y_range_dict['WS'] = new_interval
+
+        if simulated_or_real['ws'] == 'simulated':
+            ws_clock_x += 1
+            return ws_clock_y, \
+                   str(ws_clock_y) + " " + labeldict['WS'].split(' ')[1]
+        else:
+            return (redisdata['WS'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
+               str(redisdata['WS']) + " " + labeldict['WS'].split(' ')[1]
+
+@app.callback([Output('WD-bar', 'value'),
+               Output('WD-bar-text', 'children')],
+              Input('daq-interval', 'n_intervals'))
+def get_wind_direction_data(n):
+    #expected min and max for graduated bar
+    minimumvalue = 0
+    maximumvalue = 360
+
+    #connect to redis and pull data
+    conn = redis.Redis('localhost')
+    redisdata = json.loads(conn.get('wd'))
+
+    #check for duplicates
+    if redisdata['time8'] == wd_trace_x[-1]:
+        raise dash.exceptions.PreventUpdate
+    else:
+        #simulated data stuff
+        global simulated_or_real
+        if simulated_or_real['wd'] == 'simulated':
+            global simulated_data_filenames
+            global wd_clock_x
+            global wd_clock_y
+
+            if simulated_data_filetypes['wd'] == 'csv':
+                wd_clock_y = wd_sim_csv[wd_clock_x-1]
+                wd_trace_y.append(wd_clock_y)
+            else:
+                xlsx_file = Path('SimData', simulated_data_filenames['wd'])
+                wb_obj = openpyxl.load_workbook(xlsx_file)
+                sheet = wb_obj.active
+                wd_clock_y = sheet["B" + str(wd_clock_x)].value
+                wd_trace_y.append(wd_clock_y)
+        else:
+            wd_trace_y.append(redisdata['WD'])
+
+        wd_trace_x.append(redisdata['time8'])
+
+        newvalue = dict(x=wd_trace_x, y=wd_trace_y)
+        wd_trace_container.append(newvalue)
+
+        A1ap(wd_trace_y, "wd")
+        AQap(wd_trace_y, "wd")
+
+        if enable_autoscale_dict['WD'] and len(wd_trace_y) > 3:
+            global y_range_dict
+            new_interval = compute_interval(wd_trace_y, 'WD')
+            y_range_dict['WD'] = new_interval
+
+
+        if simulated_or_real['wd'] == 'simulated':
+            wd_clock_x += 1
+            return wd_clock_y, \
+                  str(wd_clock_y) + " " + labeldict['WD'].split(' ')[1]
+        else:
+            return (redisdata['WD'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
+            str(redisdata['WD']) + " " + labeldict['WD'].split(' ')[1]
+
+## Here ends the alternative
 
 @app.callback(Output('liveplot', 'figure'),
               Input('figure-interval', 'n_intervals'),
@@ -1366,8 +1571,11 @@ def update_graph_scatter(n_intervals, dropdown_value):
         'O3': o3_trace_container[0],
         'CO': co_trace_container[0],
         'CO2': co2_trace_container[0],
-        'NO': no_trace_container[0]
+        'NO': no_trace_container[0],
+        'WS': ws_trace_container[0],
+        'WD': wd_trace_container[0]
     }
+
     # Only update the figure if the user has selected a dropdown window
     if dropdown_value:
         fig = update_liveplot_helper(trace_dict, dropdown_value)
@@ -1375,61 +1583,78 @@ def update_graph_scatter(n_intervals, dropdown_value):
     else:
         raise dash.exceptions.PreventUpdate
 
-# @app.callback(Output("wind-direction", "figure"),
-#               Input("wind-interval", "n_intervals"))
-# def gen_wind_direction(A1_n):
-#     """Generate the wind direction plot. I didn't make this. I'm not sure how one would integrate real data"""
-#
-#     # Get the current time and total time.
-#     now = dt.datetime.now()
-#     total_time = (now.hour * 3600) + (now.minute * 60) + now.second
-#
-#     # Use the dataframe contained in the db folder.
-#     df = get_wind_data_by_id(total_time)
-#     val = df["Speed"].iloc[-1]
-#     direction = [0, (df["Direction"][0] - 20), (df["Direction"][0] + 20), 0]
-#
-#     # Create polar traces.
-#     traces_scatterpolar = [
-#         {"r": [0, val, val, 0], "fillcolor": app_color['red']},
-#         {"r": [0, val * 0.65, val * 0.65, 0], "fillcolor": app_color['yellow']},
-#         {"r": [0, val * 0.3, val * 0.3, 0], "fillcolor": app_color['green']},
-#     ]
-#
-#     # Create the data dictionary that will get passed onto the polar figure.
-#     data = [
-#         dict(
-#             type="scatterpolar",
-#             r=traces["r"],
-#             theta=direction,
-#             mode="lines",
-#             fill="toself",
-#             fillcolor=traces["fillcolor"],
-#             line={"color": "rgba(32, 32, 32, .6)", "width": 1},
-#         )
-#         for traces in traces_scatterpolar
-#     ]
-#
-#     # Create the layout that styles the polar figure.
-#     layout = dict(
-#         margin=dict(t=10, b=10, l=10, r=10),
-#         responsive=True,
-#         font={"color": "black"},
-#         polar={
-#             "bgcolor": app_color["graph_bg"],
-#             "radialaxis": {"range": [0, 45], "angle": 45, "dtick": 10},
-#             "angularaxis": {"showline": False, "tickcolor": "black"},
-#         },
-#         showlegend=False,
-#     )
-#
-#     # Return the data and layout to the polar figure.
-#     return dict(data=data, layout=layout)
+@app.callback(Output("wind-direction", "figure"),
+               Input("wind-interval", "n_intervals"))
+def gen_wind_direction(n):
+#     """Generate the wind direction plot""
+
+     # Get the current time and total time.
+     now = dt.datetime.now()
+     total_time = (now.hour * 3600) + (now.minute * 60) + now.second
+
+     # Use the dataframe contained in the db folder.
+     #df = get_wind_data_by_id(total_time)
+     #val = df["Speed"].iloc[-1]
+     #direction = [0, (df["Direction"][0] - 20), (df["Direction"][0] + 20), 0]
+
+     conn = redis.Redis('localhost')
+     redisdata = json.loads(conn.get('ws'))
+     val = redisdata['WS']
+
+     if simulated_or_real['ws'] == 'simulated':
+         global ws_trace_y
+         val = ws_trace_y[-1]
+
+     redisdata = json.loads(conn.get('wd'))
+     direction = [0,redisdata['WD']-20,redisdata['WD']+20,0]
+
+
+     if simulated_or_real['wd'] == 'simulated':
+         global wd_trace_y
+         direction = [0,wd_trace_y[-1]-20,wd_trace_y[-1]+20,0]
+
+
+     #direction = redisdata['WD']
+     # Create polar traces.
+     traces_scatterpolar = [
+         {"r": [0, val, val, 0], "fillcolor": app_color['red']},
+         {"r": [0, val * 0.65, val * 0.65, 0], "fillcolor": app_color['yellow']},
+         {"r": [0, val * 0.3, val * 0.3, 0], "fillcolor": app_color['green']},
+     ]
+
+     # Create the data dictionary that will get passed onto the polar figure.
+     data = [
+         dict(
+             type="scatterpolar",
+             r=traces["r"],
+             theta=direction,
+             mode="lines",
+             fill="toself",
+             fillcolor=traces["fillcolor"],
+             line={"color": "rgba(32, 32, 32, .6)", "width": 1},
+         )
+         for traces in traces_scatterpolar
+     ]
+
+     # Create the layout that styles the polar figure.
+     layout = dict(
+         margin=dict(t=10, b=10, l=10, r=10),
+         responsive=True,
+         font={"color": "black"},
+         polar={
+             "bgcolor": app_color["graph_bg"],
+             #range = wind speed range
+             "radialaxis": {"range": [0, 5], "angle": 45, "dtick": 2},
+             "angularaxis": {"direction": "clockwise", "showline": True, "tickcolor": "black"},
+         },
+         showlegend=False,
+     )
+
+     # Return the data and layout to the polar figure.
+     return dict(data=data, layout=layout)
 
 # If the program is called as 'main' (e.g. not imported and ran from within another python script), do the following.
 
-#
-#
 
 avs =0
 
@@ -1450,14 +1675,18 @@ if __name__ == '__main__':
         "o3": 0,
         "co": 0,
         "co2": 0,
-        'no': 0 }
+        "no": 0,
+        "ws": 0,
+        "wd": 0}
     A1_auto_event_count = {
         "no2": 1,
         "wcpc": 1,
         "o3": 1,
         "co": 1,
         "co2": 1,
-        'no': 1
+        "no": 1,
+        "ws": 1,
+        "wd": 1
     }
     left_zero_popped = False
     is_valid_command = False
@@ -1469,7 +1698,9 @@ if __name__ == '__main__':
         "o3": 1,
         "co": 1,
         "co2": 1,
-        'no': 1
+        "no": 1,
+        "ws": 1,
+        "wd": 1
     }
     AQ_over = {
     "no2": False,
@@ -1477,21 +1708,27 @@ if __name__ == '__main__':
     "o3": False,
     "co": False,
     "co2": False,
-    "no": False}
+    "no": False,
+    "ws": False,
+    "wd": False}
     A2_n = {
         "no2": 0,
         "wcpc": 0,
         "o3": 0,
         "co": 0,
         "co2": 0,
-        'no': 0}
+        "no": 0,
+        "ws": 0,
+        "wd": 0}
     A2_auto_event_count = {
         "no2": 1,
         "wcpc": 1,
         "o3": 1,
         "co": 1,
         "co2": 1,
-        "no": 1
+        "no": 1,
+        "ws": 1,
+        "wd": 1
     }
     avs =0
 
@@ -1506,7 +1743,29 @@ if __name__ == '__main__':
         "O3": string_to_list_interval(parser.get('y-ranges','O3')),
         "CO": string_to_list_interval(parser.get('y-ranges','CO')),
         "CO2": string_to_list_interval(parser.get('y-ranges','CO2')),
-        "NO": string_to_list_interval(parser.get('y-ranges', 'NO'))
+        "NO": string_to_list_interval(parser.get('y-ranges', 'NO')),
+        "WS": string_to_list_interval(parser.get('y-ranges', 'WS')),
+        "WD": string_to_list_interval(parser.get('y-ranges', 'WD'))
+    }
+    enable_autoscale_dict = {
+        "NO2": parser.getboolean('y-ranges','enable_autoscale_NO2'),
+        "WCPC": parser.getboolean('y-ranges','enable_autoscale_WCPC'),
+        "O3": parser.getboolean('y-ranges','enable_autoscale_O3'),
+        "CO": parser.getboolean('y-ranges','enable_autoscale_CO'),
+        "CO2": parser.getboolean('y-ranges','enable_autoscale_CO2'),
+        "NO": parser.getboolean('y-ranges', 'enable_autoscale_NO'),
+        "WS": parser.getboolean('y-ranges', 'enable_autoscale_WS'),
+        "WD": parser.getboolean('y-ranges', 'enable_autoscale_WD')
+    }
+    autoscale_padding_dict = {
+        "NO2": parser.getint('y-ranges','autoscale_padding_percentage_NO2'),
+        "WCPC": parser.getint('y-ranges','autoscale_padding_percentage_WCPC'),
+        "O3": parser.getint('y-ranges','autoscale_padding_percentage_O3'),
+        "CO": parser.getint('y-ranges','autoscale_padding_percentage_CO'),
+        "CO2": parser.getint('y-ranges','autoscale_padding_percentage_CO2'),
+        "NO": parser.getint('y-ranges', 'autoscale_padding_percentage_NO'),
+        "WS": parser.getint('y-ranges', 'autoscale_padding_percentage_WS'),
+        "WD": parser.getint('y-ranges', 'autoscale_padding_percentage_WD')
     }
 
     #log folder path
@@ -1531,14 +1790,18 @@ if __name__ == '__main__':
     "o3": parser.getint('A1_coeff','O3'),
     "co": parser.getint('A1_coeff','CO'),
     "co2": parser.getint('A1_coeff','CO2'),
-    "no": parser.getint('A1_coeff','NO') }
+    "no": parser.getint('A1_coeff','NO'),
+    "ws": parser.getint('A1_coeff','WS'),
+    "wd": parser.getint('A1_coeff','WD') }
     A1_percentile = {
     "no2": parser.getint('A1_percentile','NO2'),
     "wcpc": parser.getint('A1_percentile','WCPC'),
     "o3": parser.getint('A1_percentile','O3'),
     "co": parser.getint('A1_percentile','CO'),
     "co2": parser.getint('A1_percentile','CO2'),
-    "no": parser.getint('A1_percentile','NO')}
+    "no": parser.getint('A1_percentile','NO'),
+    "ws": parser.getint('A1_percentile','WS'),
+    "wd": parser.getint('A1_percentile','WD')}
     A1_startup_bypass = parser.getint('A1_misc','startup_bypass')
     A1_thresh_bump_percentile = {
     "no2": parser.getint('A1_thresh_bump_percentile', 'NO2'),
@@ -1546,16 +1809,20 @@ if __name__ == '__main__':
     "o3": parser.getint('A1_thresh_bump_percentile', 'O3'),
     "co": parser.getint('A1_thresh_bump_percentile', 'CO'),
     "co2": parser.getint('A1_thresh_bump_percentile', 'CO2'),
-    "no": parser.getint('A1_thresh_bump_percentile', 'NO')}
+    "no": parser.getint('A1_thresh_bump_percentile', 'NO'),
+    "ws": parser.getint('A1_thresh_bump_percentile', 'WS'),
+    "wd": parser.getint('A1_thresh_bump_percentile', 'WD')}
 
     #A2 settings
     A2_slope_thresh = {
     "no2": 0.4,
-    "wcpc": 3,
-    "o3": 3,
-    "co": 3,
-    "co2": 3,
-    'no': 3
+    "wcpc": 0.4,
+    "o3": 0.4,
+    "co": 0.4,
+    "co2": 0.4,
+    "no": 0.4,
+    "ws": 0.4,
+    "wd": 0.4
     }
     A2_hits_to_sink = {
     "no2": 3,
@@ -1563,15 +1830,19 @@ if __name__ == '__main__':
     "o3": 3,
     "co": 3,
     "co2": 3,
-    'no': 3
+    'no': 3,
+    "ws": 3,
+    "wd": 3
     }
     A2_interval = {
         "no2": deque([], maxlen=3),
-        "wcpc": deque([], maxlen=5),
-        "o3": deque([], maxlen=5),
-        "co": deque([], maxlen=5),
-        "co2": deque([], maxlen=5),
-        "no": deque([], maxlen=5)
+        "wcpc": deque([], maxlen=3),
+        "o3": deque([], maxlen=3),
+        "co": deque([], maxlen=3),
+        "co2": deque([], maxlen=3),
+        "no": deque([], maxlen=3),
+        "ws": deque([], maxlen=3),
+        "wd": deque([], maxlen=3)
     }
 
     #AQ setting
@@ -1581,7 +1852,9 @@ if __name__ == '__main__':
     "o3": parser.getint('AQ_thresh','O3'),
     "co": parser.getint('AQ_thresh','CO'),
     "co2": parser.getint('AQ_thresh','CO2'),
-    "no": parser.getint('AQ_thresh','NO')}
+    "no": parser.getint('AQ_thresh','NO'),
+    "ws": parser.getint('AQ_thresh','WS'),
+    "wd": parser.getint('AQ_thresh','WD')}
 
     #simulated or real switch
     simulated_or_real = {
@@ -1590,7 +1863,9 @@ if __name__ == '__main__':
         "o3": parser.get('real_or_simulated', 'O3'),
         "co": parser.get('real_or_simulated', 'CO'),
         "co2": parser.get('real_or_simulated', 'CO2'),
-        "no": parser.get('real_or_simulated', 'NO')
+        "no": parser.get('real_or_simulated', 'NO'),
+        "ws": parser.get('real_or_simulated', 'WS'),
+        "wd": parser.get('real_or_simulated', 'WD')
     }
 
     #simulated or real switch error handling
@@ -1608,7 +1883,9 @@ if __name__ == '__main__':
             "o3": '',
             "co": '',
             "co2": '',
-            "no": ''
+            "no": '',
+            "ws": '',
+            "wd": ''
         }
     if simulated_or_real['no2'] == 'simulated':
         simulated_data_filenames['no2'] = simulated_data_path + parser.get('real_or_simulated','sim_NO2_filename')
@@ -1622,6 +1899,10 @@ if __name__ == '__main__':
         simulated_data_filenames['co2'] = simulated_data_path + parser.get('real_or_simulated','sim_CO2_filename')
     if simulated_or_real['no'] == 'simulated':
         simulated_data_filenames['no'] = simulated_data_path + parser.get('real_or_simulated','sim_NO_filename')
+    if simulated_or_real['ws'] == 'simulated':
+        simulated_data_filenames['ws'] = simulated_data_path + parser.get('real_or_simulated','sim_WS_filename')
+    if simulated_or_real['wd'] == 'simulated':
+        simulated_data_filenames['wd'] = simulated_data_path + parser.get('real_or_simulated','sim_WD_filename')
 
     #simulated data file types
     simulated_data_filetypes = {
@@ -1630,7 +1911,9 @@ if __name__ == '__main__':
         "o3": '',
         "co": '',
         "co2": '',
-        "no": ''
+        "no": '',
+        "ws": '',
+        "wd": ''
     }
 
     def get_extension(filename):
@@ -1664,8 +1947,12 @@ if __name__ == '__main__':
     if simulated_or_real['no'] and simulated_data_filetypes['no'] == 'csv':
         no_sim_csv_df = pd.read_csv(simulated_data_filenames['no'], names=['index','value'])
         no_sim_csv = no_sim_csv_df["value"].to_list()
-
-
+    if simulated_or_real['ws'] and simulated_data_filetypes['ws'] == 'csv':
+        ws_sim_csv_df = pd.read_csv(simulated_data_filenames['ws'], names=['index','value'])
+        ws_sim_csv = ws_sim_csv_df["value"].to_list()
+    if simulated_or_real['wd'] and simulated_data_filetypes['wd'] == 'csv':
+        wd_sim_csv_df = pd.read_csv(simulated_data_filenames['wd'], names=['index','value'])
+        wd_sim_csv = wd_sim_csv_df["value"].to_list()
 
 
     #clock variables used for simulated data
@@ -1681,6 +1968,10 @@ if __name__ == '__main__':
     co2_clock_y = 0
     no_clock_x = 1
     no_clock_y = 0
+    ws_clock_x = 1
+    ws_clock_y = 0
+    wd_clock_x = 1
+    wd_clock_y = 0
 
     #run our server
     app.run_server(debug=True, dev_tools_ui=True, port=8090)
