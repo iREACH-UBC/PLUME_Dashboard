@@ -289,6 +289,34 @@ def AQap(data_points, pollutant):
         AQ_auto_event_count[pollutant] += 1
         return None
 
+#detects when the wind direction is within a certain radial range
+def wind_direction_alert(data_points, pollutant):
+    #exitting function if wind direction alert is disabled
+    global enable_wind_direction_alert
+    if enable_wind_direction_alert == False:
+        return None
+
+    #import global vars, uses same counter variables as AQ algorithm
+    global wind_direction_alert_range
+    global AQ_over
+    global AQ_auto_event_count
+
+    #detecting if the direction moves INTO the alert range
+    if (data_points[-1] >= wind_direction_alert_range[0]) and (data_points[-1] <= wind_direction_alert_range[1]) and (AQ_over[pollutant] == False):
+        AQ_over[pollutant] = True
+        print("Wind direction is within alert range")
+        auto_event_mark("WD-alert-begin-" + str(AQ_auto_event_count[pollutant]), "WD alert begin", pollutant)
+        AQ_auto_event_count[pollutant] += 1
+        return None
+
+    #detecting if the direction moves OUT OF the alert range
+    if (not ( (data_points[-1] >= wind_direction_alert_range[0]) and (data_points[-1] <= wind_direction_alert_range[1]))) and (AQ_over[pollutant] == True):
+        AQ_over[pollutant] = False
+        print("Wind direction is no longer within alert range")
+        auto_event_mark("WD-alert-end-" + str(AQ_auto_event_count[pollutant]), "WD alert end", pollutant)
+        AQ_auto_event_count[pollutant] += 1
+        return None
+
 #helper function to remove the leftmost zero of traces so that A1 can work properly
 def zero_flush():
     #import our global switch and exit function if it's already been ran or if the queues are too small
@@ -689,7 +717,7 @@ def auto_event_mark(auto_event_name,algorithm,pollutant):
             writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
 
             # prepare a string to be written to our txt and then write to it
-            txt_string = str((dt.datetime.now()).strftime("%H:%M:%S")) + ", " + auto_event_name + ", " + str(
+            txt_string = str((dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")) + ", " + auto_event_name + ", " + str(
                 no2_trace_y[-1]) + ", " + str(wcpc_trace_y[-1]) + ", " + str(o3_trace_y[-1]) + ", " + str(
                 co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) +', ' +str(no_trace_y[-1]) +', ' +str(ws_trace_y[-1]) +', ' +str(wd_trace_y[-1]) +"\n"
             txt_file.write(txt_string)
@@ -738,7 +766,7 @@ def sensor_dump():
             writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
 
             # prepare a string to be written to our txt and then write to it
-            txt_string = str(index_clock)+", "+str((dt.datetime.now()).strftime("%H:%M:%S")) + ", " +str(
+            txt_string = str(index_clock)+", "+str((dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")) + ", " +str(
                 no2_trace_y[-1]) + ", " + str(wcpc_trace_y[-1]) + ", " + str(o3_trace_y[-1]) + ", " +str(
                 co_trace_y[-1]) + ", " + str(co2_trace_y[-1]) + ", "+ str(no_trace_y[-1])  +', ' +str(ws_trace_y[-1]) +', ' +str(wd_trace_y[-1]) +"\n"
             txt_file.write(txt_string)
@@ -839,10 +867,11 @@ def read_command(raw_command):
         AQ_thresh[pollutant] = int(new_thresh)
         return None
 
-    #simple A1 and AQ toggle switch
+    #simple A1, AQ, and wind direction alert toggle switch
     """
     '*tA1' - toggles A1 on/off
     '*tAQ' - toggles AQ on/off
+    '*tWDA' - toggles wind direction alert on/off
     """
     if command[1] == 't':
         global toggle_type
@@ -870,6 +899,19 @@ def read_command(raw_command):
                 AQ = True
                 print("toggling AQ ON")
                 toggle_type = '(AQ ON)'
+                return None
+
+        if command[2:5] == 'wda':
+            global enable_wind_direction_alert
+            if enable_wind_direction_alert:
+                enable_wind_direction_alert = False
+                print("toggling wind direction alert OFF")
+                toggle_type = '(WDA OFF)'
+                return None
+            else:
+                enable_wind_direction_alert = True
+                print("toggling wind direction alert ON")
+                toggle_type = '(WDA ON)'
                 return None
 
 
@@ -923,6 +965,54 @@ def read_command(raw_command):
         print("changing graph y_range for " + pollutant + " to [" + lower_bound +","+upper_bound+"]" )
         y_range_dict[pollutant.upper()] = [int(lower_bound),int(upper_bound)]
         return None
+
+
+
+    #autoscale toggle switch
+    """
+    '*AS no2' - toggles autoscale on/off for NO2
+    '*AS wcpc' - toggles autoscale on/off for NO2
+    """
+    if command[1:3] == "as":
+        global enable_autoscale_dict
+        pollutant = ''
+
+        for i in range(3, len(command)):
+            pollutant += command[i]
+
+        pollutant = pollutant.upper()
+
+        if enable_autoscale_dict[pollutant]:
+            print("Disabling autoscale for "+pollutant)
+            enable_autoscale_dict[pollutant] = False
+            y_range_dict[pollutant] = y_range_dict_original[pollutant]
+        else:
+            print("Enabling autoscale for " + pollutant)
+            enable_autoscale_dict[pollutant] = True
+
+
+    #change wind direction alert range
+    """
+    '*WDrange = 150,180' - changes wind direction alert range to 150 - 180
+    '*WDrange = 200,300' - changes wind direction alert range to 200 - 300
+    """
+    if command[1:9] == 'wdrange=':
+        global wind_direction_alert_range
+
+        # finding interval lower bound, upper bound, and pollutant from command
+        lower_bound = ""
+        upper_bound = ""
+        for i in range(9, len(command)):
+            if command[i] == ",":
+                for f in range((i + 1), len(command)):
+                    upper_bound += command[f]
+                break
+            lower_bound += command[i]
+
+        print("changing wind direction alert range to [" + lower_bound + "," + upper_bound + "]")
+        wind_direction_alert_range = [int(lower_bound), int(upper_bound)]
+        return None
+
 
     ##
 
@@ -1002,7 +1092,7 @@ def mark_event(n, eventtag):
                     markerdict['Pollutant'] = "-"
                     markerdict['Time'] = (dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
 
-                    if toggle_type == ('(A1 OFF)' or '(A1 ON)' or '(AQ OFF)' or '(AQ ON)'):
+                    if toggle_type == ('(A1 OFF)' or '(A1 ON)' or '(AQ OFF)' or '(AQ ON)' or '(WDA ON)' or '(WDA OFF)'):
                         markerdict['Event Tag'] = str(eventtag)+' '+str(toggle_type)
                     else:
                         markerdict['Event Tag'] = eventtag
@@ -1020,7 +1110,7 @@ def mark_event(n, eventtag):
                     writer = csv.DictWriter(file, delimiter=',', fieldnames=list(markerdict.keys()))
 
                     #prepare a string to be written to our txt and then write to it
-                    txt_string = str((dt.datetime.now()).strftime("%H:%M:%S"))+", "+str(eventtag)+", "+str(no2_trace_y[-1])+", "+str(wcpc_trace_y[-1])+", "+str(o3_trace_y[-1])+", "+str(co_trace_y[-1])+", "+str(co2_trace_y[-1])+', '+str(no_trace_y[-1])+', '+str(ws_trace_y[-1])+', '+str(wd_trace_y[-1])+"\n"
+                    txt_string = str((dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S"))+", "+str(eventtag)+", "+str(no2_trace_y[-1])+", "+str(wcpc_trace_y[-1])+", "+str(o3_trace_y[-1])+", "+str(co_trace_y[-1])+", "+str(co2_trace_y[-1])+', '+str(no_trace_y[-1])+', '+str(ws_trace_y[-1])+', '+str(wd_trace_y[-1])+"\n"
                     txt_file.write(txt_string)
 
                     # If the log file did not already exist, write the column headers.
@@ -1056,11 +1146,15 @@ abc=1
 #helper function for autoscale
 def compute_interval(input_trace,pollutant):
     global autoscale_padding_dict
-    print(input_trace)
     min_entry = min(input_trace)
     max_entry = max(input_trace)
     range = max_entry - min_entry
     padding_amount = range * ( autoscale_padding_dict[pollutant]/100 )
+
+    '''
+    if padding_amount<1:
+        padding_amount = 1
+    '''
 
     upper_bound = max_entry + padding_amount
     lower_bound = min_entry - padding_amount
@@ -1068,7 +1162,7 @@ def compute_interval(input_trace,pollutant):
     if lower_bound < 0:
         lower_bound = 0
 
-    return [int(lower_bound), int(upper_bound)]
+    return [round(lower_bound,2), round(upper_bound,2)]
 
 #get_no2_data function is ALSO responsible for calling our sensor_dump and zero_flush functions
 @app.callback([Output('NO2-bar', 'value'),
@@ -1542,7 +1636,8 @@ def get_wind_direction_data(n):
         wd_trace_container.append(newvalue)
 
         A1ap(wd_trace_y, "wd")
-        AQap(wd_trace_y, "wd")
+        #AQap(wd_trace_y, "wd")
+        wind_direction_alert(wd_trace_y, "wd")
 
         if enable_autoscale_dict['WD'] and len(wd_trace_y) > 3:
             global y_range_dict
@@ -1747,6 +1842,16 @@ if __name__ == '__main__':
         "WS": string_to_list_interval(parser.get('y-ranges', 'WS')),
         "WD": string_to_list_interval(parser.get('y-ranges', 'WD'))
     }
+    y_range_dict_original = {
+        "NO2": string_to_list_interval(parser.get('y-ranges','NO2')),
+        "WCPC": string_to_list_interval(parser.get('y-ranges','WCPC')),
+        "O3": string_to_list_interval(parser.get('y-ranges','O3')),
+        "CO": string_to_list_interval(parser.get('y-ranges','CO')),
+        "CO2": string_to_list_interval(parser.get('y-ranges','CO2')),
+        "NO": string_to_list_interval(parser.get('y-ranges', 'NO')),
+        "WS": string_to_list_interval(parser.get('y-ranges', 'WS')),
+        "WD": string_to_list_interval(parser.get('y-ranges', 'WD'))
+    }
     enable_autoscale_dict = {
         "NO2": parser.getboolean('y-ranges','enable_autoscale_NO2'),
         "WCPC": parser.getboolean('y-ranges','enable_autoscale_WCPC'),
@@ -1782,6 +1887,10 @@ if __name__ == '__main__':
     #A2 = parser.getboolean('algorithm_circuit_breaker','A2_on')
     A2 = False
     AQ = parser.getboolean('algorithm_circuit_breaker','AQ_on')
+
+    #wind direction alert settings
+    enable_wind_direction_alert = parser.getboolean('wind_direction_alert','enable_wind_direction_alert')
+    wind_direction_alert_range = string_to_list_interval(parser.get('wind_direction_alert','wind_direction_alert_range'))
 
     #A1 settings
     A1_coeff = {
@@ -1853,8 +1962,7 @@ if __name__ == '__main__':
     "co": parser.getint('AQ_thresh','CO'),
     "co2": parser.getint('AQ_thresh','CO2'),
     "no": parser.getint('AQ_thresh','NO'),
-    "ws": parser.getint('AQ_thresh','WS'),
-    "wd": parser.getint('AQ_thresh','WD')}
+    "ws": parser.getint('AQ_thresh','WS')}
 
     #simulated or real switch
     simulated_or_real = {

@@ -45,14 +45,14 @@ config['y-ranges'] = {
     'enable_autoscale_NO':'false',
     'enable_autoscale_WS':'false',
     'enable_autoscale_WD':'false',
-    'autoscale_padding_percentage_NO2':'5',
-    'autoscale_padding_percentage_WCPC':'5',
-    'autoscale_padding_percentage_O3':'5',
-    'autoscale_padding_percentage_CO':'5',
-    'autoscale_padding_percentage_CO2':'5',
-    'autoscale_padding_percentage_NO':'5',
-    'autoscale_padding_percentage_WS':'5',
-    'autoscale_padding_percentage_WD':'5'
+    'autoscale_padding_percentage_NO2':'10',
+    'autoscale_padding_percentage_WCPC':'10',
+    'autoscale_padding_percentage_O3':'10',
+    'autoscale_padding_percentage_CO':'10',
+    'autoscale_padding_percentage_CO2':'10',
+    'autoscale_padding_percentage_NO':'10',
+    'autoscale_padding_percentage_WS':'10',
+    'autoscale_padding_percentage_WD':'10'
 }
 
 #command char
@@ -67,11 +67,22 @@ config['log_directory'] = {
     'log_files_path':'C:/Users/Chris/Desktop/Dashboard/LOG_FILES'
 }
 
+#GPS merge data options
+config['GPS_merge_data'] = {
+    'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/GPS',
+    'input_filename':''
+}
+
 #misc, including algorithm circuit breaker
 config['algorithm_circuit_breaker'] = {
     'A1 and AQ can be enabled or disabled for all pollutants here. enter \'true\' to enable or \'false\' to disable\n'
     'A1_on': 'true',
     'AQ_on': 'true',
+}
+
+config['wind_direction_alert'] = {
+    'enable_wind_direction_alert': 'true',
+    'wind_direction_alert_range': '50,180'
 }
 
 #data setting
@@ -161,8 +172,7 @@ config['AQ_thresh'] = {
     'CO': '9',
     'CO2': '800',
     'NO': '100',
-    'WS': '1',
-    'WD': '180'}
+    'WS': '1'}
 
 #baseline settings
 config['baseline'] ={
