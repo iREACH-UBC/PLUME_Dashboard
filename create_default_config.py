@@ -70,7 +70,17 @@ config['log_directory'] = {
 #GPS merge data options
 config['GPS_merge_data'] = {
     'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/GPS',
-    'input_filename':''
+    'gpx_input_filename': 'GL770.gpx',
+    'sensor_transcript_input_filename': 'datapoints.csv',
+    'output_filename': 'MERGED.csv',
+    'no2_lag': '40',
+    'wcpc_lag': '5',
+    'o3_lag': '40',
+    'co_lag': '40',
+    'co2_lag': '40',
+    'no_lag': '40',
+    'dashboard_start_time': '2022-06-30 12:58:42',
+    'dashboard_end_time': '2022-06-30 14:05:16'
 }
 
 #misc, including algorithm circuit breaker

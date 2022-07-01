@@ -26,28 +26,40 @@ A1_coeff = {
     "o3": parser.getint('A1_coeff','O3'),
     "co": parser.getint('A1_coeff','CO'),
     "co2": parser.getint('A1_coeff','CO2'),
-    "no": parser.getint('A1_coeff','NO') }
+    "no": parser.getint('A1_coeff','NO'),
+    "ws": parser.getint('A1_coeff','WS'),
+    "wd": parser.getint('A1_coeff','WD')
+}
 A1_percentile = {
     "no2": parser.getint('A1_percentile','NO2'),
     "wcpc": parser.getint('A1_percentile','WCPC'),
     "o3": parser.getint('A1_percentile','O3'),
     "co": parser.getint('A1_percentile','CO'),
     "co2": parser.getint('A1_percentile','CO2'),
-    "no": parser.getint('A1_percentile','NO')}
+    "no": parser.getint('A1_percentile','NO'),
+    "ws": parser.getint('A1_percentile','WS'),
+    "wd": parser.getint('A1_percentile','WD')
+}
 A1_thresh_bump_percentile = {
     "no2": parser.getint('A1_thresh_bump_percentile', 'NO2'),
     "wcpc": parser.getint('A1_thresh_bump_percentile', 'WCPC'),
     "o3": parser.getint('A1_thresh_bump_percentile', 'O3'),
     "co": parser.getint('A1_thresh_bump_percentile', 'CO'),
     "co2": parser.getint('A1_thresh_bump_percentile', 'CO2'),
-    "no": parser.getint('A1_thresh_bump_percentile', 'NO')}
+    "no": parser.getint('A1_thresh_bump_percentile', 'NO'),
+    "ws": parser.getint('A1_thresh_bump_percentile', 'WS'),
+    "wd": parser.getint('A1_thresh_bump_percentile', 'WD')
+}
 A1_thresh_dump = {
     "no2": parser.getboolean('A1_post_processing_thresh_dump', 'NO2'),
     "wcpc": parser.getboolean('A1_post_processing_thresh_dump', 'WCPC'),
     "o3": parser.getboolean('A1_post_processing_thresh_dump', 'O3'),
     "co": parser.getboolean('A1_post_processing_thresh_dump', 'CO'),
     "co2": parser.getboolean('A1_post_processing_thresh_dump', 'CO2'),
-    "no": parser.getboolean('A1_post_processing_thresh_dump', 'NO') }
+    "no": parser.getboolean('A1_post_processing_thresh_dump', 'NO'),
+    "ws": parser.getboolean('A1_post_processing_thresh_dump', 'WS'),
+    "wd": parser.getboolean('A1_post_processing_thresh_dump', 'WD')
+}
 #base_thresh_only = parser.getboolean('A1_post_processing_thresh_dump', 'only_show_base_thresh')
 base_thresh_only = False
 #limit_thresh = parser.getboolean('A1_post_processing_thresh_dump', 'limit_thresh_to_just_above_max')
@@ -63,8 +75,8 @@ if (directory[-1] != '/'):
 filename = directory+(parser.get('A1_misc','input_filename'))
 output_csv = directory+(parser.get('A1_misc','output_filename'))
 
-col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)']
-output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)',"","NO2 peak (ppb)"]
+col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)']
+output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)',"","NO2 peak (ppb)"]
 if A1_thresh_dump['no2']:
     output_cols.append('NO2 thresh')
 output_cols.append('WCPC peak (#/cm^3)')
@@ -82,6 +94,10 @@ if A1_thresh_dump['co2']:
 output_cols.append('NO peak (ppb)')
 if A1_thresh_dump['no']:
     output_cols.append('NO thresh')
+if A1_thresh_dump['ws']:
+    output_cols.append('WS thresh')
+if A1_thresh_dump['wd']:
+    output_cols.append('WD thresh')
 
 traces = dict(
     no2=deque([], maxlen=trace_length),
@@ -90,6 +106,8 @@ traces = dict(
     co=deque([], maxlen=trace_length),
     co2=deque([], maxlen=trace_length),
     no=deque([], maxlen=trace_length),
+    ws=deque([], maxlen=trace_length),
+    wd=deque([], maxlen=trace_length)
 )
 
 A1_n = {
@@ -98,7 +116,10 @@ A1_n = {
     "o3": 0,
     "co": 0,
     "co2": 0,
-    "no": 0}
+    "no": 0,
+    "ws": 0,
+    "wd": 0
+}
 current_chunk=0
 
 ###############################################################################################
@@ -230,6 +251,8 @@ while True:
     co_list = data["CO (ppb)"].to_list()
     co2_list = data["CO2 (ppm)"].to_list()
     no_list = data['NO (ppb)'].to_list()
+    ws_list = data['WS (m/s)'].to_list()
+    wd_list = data['WD (degrees)'].to_list()
     row_list = data["Row"].to_list()
     time_list = data["Time"].to_list()
 
@@ -240,7 +263,9 @@ while True:
         'o3': [],
         'co': [],
         'co2': [],
-        'no': []
+        'no': [],
+        'ws': [],
+        'wd': []
     }
 
     # compute peaks for current chunk and save as it's own list
@@ -250,6 +275,8 @@ while True:
     co_peaks = compute_peak_list(co_list,'co')
     co2_peaks = compute_peak_list(co2_list,'co2')
     no_peaks = compute_peak_list(no_list,'no')
+    ws_peaks = compute_peak_list(ws_list, 'ws')
+    wd_peaks = compute_peak_list(wd_list, 'wd')
 
     #limiting thresh if necessary
     if limit_thresh:
@@ -259,7 +286,9 @@ while True:
             'o3': (max(o3_list)),
             'co': (max(co_list)),
             'co2': (max(co2_list)),
-            'no': (max(no_list))
+            'no': (max(no_list)),
+            'ws': (max(ws_list)),
+            'wd': (max(wd_list))
         }
         for pollutant in thresh_dict:
             for i in range(0,len(thresh_dict[pollutant])):
@@ -276,7 +305,7 @@ while True:
 
         #write data to CSV
         for i in range(0, len(row_list)):
-            row = [row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i],"", no2_peaks[i]]
+            row = [row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i], "", no2_peaks[i]]
 
             if A1_thresh_dump['no2']:
                 row.append(thresh_dict['no2'][i])
@@ -300,6 +329,14 @@ while True:
             row.append(no_peaks[i])
             if A1_thresh_dump['no']:
                 row.append(thresh_dict['no'][i])
+
+            row.append(ws_peaks[i])
+            if A1_thresh_dump['ws']:
+                row.append(thresh_dict['ws'][i])
+
+            row.append(wd_peaks[i])
+            if A1_thresh_dump['wd']:
+                row.append(thresh_dict['wd'][i])
 
             w.writerow(row)
 

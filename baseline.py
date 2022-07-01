@@ -74,8 +74,8 @@ if (include_settings_in_filename):
     else:
         output_csv += '.csv'
 
-col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)']
-output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)']
+col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)']
+output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)','WS baseline (m/s)','WD baseline (degrees)']
 
 current_chunk = 0 #global counter, DO NOT CHANGE, KEEP IT SET AT 0
 ###############################################################################################
@@ -278,6 +278,8 @@ if interlace_chunks:
         co_list = data["CO (ppb)"].to_list()
         co2_list = data["CO2 (ppm)"].to_list()
         no_list = data['NO (ppb)'].to_list()
+        ws_list = data['WS (m/s)'].to_list()
+        wd_list = data['WD (degrees)'].to_list()
         row_list = data["Row"].to_list()
         time_list = data["Time"].to_list()
 
@@ -288,6 +290,8 @@ if interlace_chunks:
         co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
         co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
         no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+        ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+        wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
 
         #check if there's data from previous chunk that we can use for interlacing
         if (current_chunk != 0):
@@ -298,6 +302,8 @@ if interlace_chunks:
                 co_baseline = overwrite_first_half(co_baseline, co_baseline_more)
                 co2_baseline = overwrite_first_half(co2_baseline, co2_baseline_more)
                 no_baseline = overwrite_first_half(no_baseline, no_baseline_more)
+                ws_baseline = overwrite_first_half(ws_baseline, ws_baseline_more)
+                wd_baseline = overwrite_first_half(wd_baseline, wd_baseline_more)
 
 
         #check if there's data ahead that we can use for interlacing
@@ -312,6 +318,8 @@ if interlace_chunks:
             co_list_more = data_more["CO (ppb)"].to_list()
             co2_list_more = data_more["CO2 (ppm)"].to_list()
             no_list_more = data_more['NO (ppb)'].to_list()
+            ws_list_more = data_more['WS (m/s)'].to_list()
+            wd_list_more = data_more['WD (degrees)'].to_list()
             row_list_more = data_more["Row"].to_list()
 
             # label current more lists as full or not
@@ -327,6 +335,8 @@ if interlace_chunks:
             co_baseline_more = compute_baseline(co_list_more, setting_window_size, setting_smoothing)
             co2_baseline_more = compute_baseline(co2_list_more, setting_window_size, setting_smoothing)
             no_baseline_more = compute_baseline(no_list_more, setting_window_size, setting_smoothing)
+            ws_baseline_more = compute_baseline(ws_list_more, setting_window_size, setting_smoothing)
+            wd_baseline_more = compute_baseline(wd_list_more, setting_window_size, setting_smoothing)
 
             #override second half of baseline lists with the corresponding value in its corresponding baseline_more list
             no2_baseline = overwrite_last_half(no2_baseline, no2_baseline_more)
@@ -335,6 +345,8 @@ if interlace_chunks:
             co_baseline = overwrite_last_half(co_baseline, co_baseline_more)
             co2_baseline = overwrite_last_half(co2_baseline, co2_baseline_more)
             no_baseline = overwrite_last_half(no_baseline, no_baseline_more)
+            ws_baseline = overwrite_last_half(ws_baseline, ws_baseline_more)
+            wd_baseline = overwrite_last_half(wd_baseline, wd_baseline_more)
 
         with open(output_csv,"a",newline='') as f:
             w = csv.writer(f)
@@ -343,7 +355,7 @@ if interlace_chunks:
                 w.writerow(output_cols)
 
             for i in range(0,len(row_list)):
-                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i] ])
+                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i], "", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
 
         # break loop if we're on the last chunk, otherwise go to next chunk
         if len(row_list) < queue_size:
@@ -366,6 +378,8 @@ if (is_formatted == True and (interlace_chunks == False)): #this is the code to 
         co_list = data["CO (ppb)"].to_list()
         co2_list = data["CO2 (ppm)"].to_list()
         no_list = data['NO (ppb)'].to_list()
+        ws_list = data['WS (m/s)'].to_list()
+        wd_list = data['WD (degrees)'].to_list()
         row_list = data["Row"].to_list()
         time_list = data["Time"].to_list()
 
@@ -376,6 +390,8 @@ if (is_formatted == True and (interlace_chunks == False)): #this is the code to 
         co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
         co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
         no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+        ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+        wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
 
         with open(output_csv,"a",newline='') as f:
             w = csv.writer(f)
@@ -384,7 +400,7 @@ if (is_formatted == True and (interlace_chunks == False)): #this is the code to 
                 w.writerow(output_cols)
 
             for i in range(0,len(row_list)):
-                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i] ])
+                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
 
         # break loop if we're on the last chunk, otherwise go to next chunk
         if len(no2_list) < queue_size:
