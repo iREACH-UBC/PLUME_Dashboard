@@ -1,3 +1,10 @@
+"""
+This script will merge a sensor transcript CSV with a .gpx GPS file by matching timestamps.
+
+The '[GPS_merge_data]' settings in 'user_defined_settings.ini' must be specified in order for this script to run.
+"""
+
+
 import pandas as pd
 import csv
 from datetime import datetime
@@ -12,13 +19,13 @@ parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
 
-directory = parser.get('GPS_merge_data', 'folder_directory')
+directory = parser.get('GPS_merge_data', 'folder_path')
 if (directory[-1] != '/'):
     directory += '/'
-GPXfile = directory+(parser.get('GPS_merge_data','gpx_input_filename'))
+GPXfile = directory+(parser.get('GPS_merge_data','gpx_filename'))
 #GPXfile = 'input\GL770.gpx'
 
-CSVinput = directory+(parser.get('GPS_merge_data','sensor_transcript_input_filename'))
+CSVinput = directory+(parser.get('GPS_merge_data','csv_filename'))
 
 output_file = directory+(parser.get('GPS_merge_data','output_filename'))
 
@@ -36,8 +43,8 @@ for pollutant in lags:
   if lags[pollutant] > max_lag:
     max_lag = lags[pollutant]
 
-Dash_start_time = parser.get('GPS_merge_data','dashboard_start_time')
-Dash_end_time = parser.get('GPS_merge_data','dashboard_end_time')
+Dash_start_time = parser.get('GPS_merge_data','start_time')
+Dash_end_time = parser.get('GPS_merge_data','end_time')
 
 Dash_end_time = datetime.strptime(Dash_end_time, "%Y-%m-%d %H:%M:%S")
 Dash_end_time = Dash_end_time - relativedelta(seconds=max_lag)
@@ -143,9 +150,7 @@ os.remove('aux_files\\new_GL770.csv')
 os.remove('aux_files\GL770.csv')
 
 """
-### Garmin GPS stuff comment out for now ### GL770 has better time resolution ###
-
-############################################# Code for Garmin GPS #############################################
+#below is the code for a garmin GPS... We don't use it but the code is here for anyone who wants to dabble with it
 
 ############### Converting from GPX to csv ###############
 

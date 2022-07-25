@@ -1,10 +1,7 @@
 """
-To use this script, place a sensor transcript/readout CSV file in the 'BASELINE' folder, rename the file to 'IN.csv' and
-then run this script. It MUST be places in the 'BASELINE' folder and MUST be named 'IN.csv' exactly
+This script will compute a baseline for each pollutant in a sensor transcript CSV.
 
-If smoothing = 1, the program will make one pass through the data
-If smoothing > 1, the program will make multiple passes through the data (each with different interval size) and take
-the average of ALL of the calculated baseline lists
+The '[baseline]' settings in 'user_defined_settings.ini' must be specified in order for this script to run.
 """
 
 
@@ -72,7 +69,7 @@ if (include_settings_in_filename):
     if interlace_chunks:
         output_csv += ", interlaced chunks.csv"
     else:
-        output_csv += '.csv'
+        output_csv += ', not interlaced.csv'
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)']
 output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)','WS baseline (m/s)','WD baseline (degrees)']
@@ -242,30 +239,6 @@ def compute_baseline(data_chunk, window_size, smoothing):
     return output_list
 
 
-'''
-#determining the ideal queue size
-row_count = csv_count_rows(filename, col_names, 1000)
-row_count_og = row_count
-i=1
-while True:
-    #testing current row_count to see if a good i exists
-    while(row_count/i > max_queue_size):
-        i += 1
-        if (row_count/(i+1) < min_queue_size):
-            break
-
-    #break if good i is found for current row_count, othwerwise try row_count-1
-    if is_whole(row_count/i):
-        print("ideal chunk size is found to be "+str(int(row_count/i))+" using row count of "+str(row_count)+", thus making "+str(i)+' chunk(s)')
-        break
-    else:
-        print("row count of "+str(row_count)+" cannot be divided into chunks of equal size within min and max chunk size settings, now subtracting 1 from row count and trying again")
-        if(i == row_count/2):
-            sys.exit("unacceptably low min-max chunk size range")
-        row_count -= 1
-queue_size = int(row_count/i)
-'''
-
 if interlace_chunks:
     while True:
         #read in the current chunk
@@ -365,8 +338,7 @@ if interlace_chunks:
         else:
             print("chunk "+str(current_chunk+1)+" written")
             current_chunk += 1
-
-if (is_formatted == True and (interlace_chunks == False)): #this is the code to use, the else part is not working
+else:
     while True:
         #read in the current chunk
         data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
@@ -408,68 +380,6 @@ if (is_formatted == True and (interlace_chunks == False)): #this is the code to 
             break
         else:
             print("chunk "+str(current_chunk+1)+" written")
-            current_chunk += 1
-else:
-    #populate col_names
-    pandas_col_names = pd.read_csv(filename, nrows=1, header=0)
-    col_names = list(pandas_col_names.columns)
-    # non_data_leading_cols = col_names[0:(col_interval[0]+1)]
-    col_names = col_names[(col_interval[0]):(col_interval[1])]
-    for i in range(0,len(col_names)):
-        col_names[i] = str(col_names[i])
-
-    #populate output cols
-    output_cols = []
-    for i in col_names:
-        output_cols.append(i)
-    output_cols.append('')
-    for i in col_names:
-        output_cols.append(i+' baseline')
-
-    while True:
-        # read in the current chunk
-        data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
-
-        # convert current chunk to matrix
-        in_mat=[]
-        for i in col_names:
-            in_mat.append(data[i].to_list())
-
-        #calculate baseline and save as matrix
-        out_mat = []
-        for i in range(0,len(in_mat)):
-            out_mat.append(compute_baseline(in_mat[i], setting_window_size, setting_smoothing))
-
-        #transpose in_mat and out_mat so each entry is a row to be written
-        arr = np.array(out_mat)
-        arr = arr.transpose()
-        out_mat = arr.tolist()
-        arr = np.array(in_mat)
-        arr = arr.transpose()
-        in_mat = arr.tolist()
-
-        #write chunk to CSV
-        with open(output_csv, "a", newline='') as f:
-            w = csv.writer(f)
-
-            if current_chunk == 0:
-                w.writerow(output_cols)
-
-            for i in range(0, len(out_mat)):
-                current_row=[]
-                for a in in_mat[i]:
-                    current_row.append(a)
-                current_row.append('')
-                for a in out_mat[i]:
-                    current_row.append(a)
-                w.writerow(current_row)
-
-        # break loop if we're on the last chunk, otherwise go to next chunk
-        if len(out_mat) < queue_size:
-            print("chunk " + str(current_chunk + 1) + " written")
-            break
-        else:
-            print("chunk " + str(current_chunk + 1) + " written")
             current_chunk += 1
 
 

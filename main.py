@@ -1,15 +1,17 @@
 """
-Created by Julian Fawkes, 2020, and Chris Kelly, 2021
-Contributions and minor edits by: Naomi Zimmerman, Melanie MacArthur, Stefan Colbow, Rachel Haberman, and Davi Monticelli
+Created by Julian Fawkes, 2020, and Chris Kelly, 2021/2022
+Contributions and minor edits by: Naomi Zimmerman, Melanie MacArthur, Stefan Colbow, Rachel Habermehl, and Davi Monticelli
 PLUME Dashboard - A browser-based pollutant data visualization program built using Dash. The dashboard pulls data
 from a DAQ script using a locally-hosted redis server. Each instrument sends data using a
 different transfer protocol and is taken in by a CR1000X datalogger.
+
+Either modbus-tcp_daq.py or another DAQ script must first be running in order for this script to work. Additionally, the
+'user_defined_settings.ini' file must first be set up before running this script.
 """
-#TODO add wind import and sys
+
 import os
 import math
 import sys
-
 import dash
 import csv
 import statistics
@@ -17,14 +19,7 @@ from dash.dependencies import Output, Input, State
 from plotly.subplots import make_subplots
 from collections import deque
 import collections
-#from db import get_wind_data_by_id
-#from db.api import get_wind_data, get_wind_data_by_id
-
-#this is a test for wind plotting
 import plotly.express as px
-#import plotly.graph_objects as go
-#test
-
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -38,11 +33,11 @@ from configparser import ConfigParser
 from pathlib import Path
 import json
 
-#NOTE: when you see stuff like "fold_start = 0" or "avs = 0", those are just lines of folds starting and ending (pycharm doesn't want fold borders to be comments)
+#NOTE: when you see variables like "fold_start = 0" or "avs = 0", those are just lines of folds starting and ending (pycharm doesn't want fold borders to be comments)
 
-'''###############################
-## SECTION 1. Bookkeeping stuff ##
-###############################'''
+'''#########################
+## SECTION 1. Bookkeeping ##
+#########################'''
 fold_start = 0
 
 # Create a dash object 'app' with name '__name__'. Stop the title from changing when content updates.
@@ -171,7 +166,8 @@ def A1ap(data_points, pollutant):
     thresh = A1_coeff[pollutant] * sd
     thresh += thresh_bump #adding thresh bumpp
 
-    #(printing stuff for debugging purposes, only implemented for NO2)
+    #(printing info for debugging purposes, only implemented for NO2)
+    '''
     if pollutant == "no2":
         global no2_clock_y
         global no2_clock_x
@@ -179,6 +175,7 @@ def A1ap(data_points, pollutant):
         print("x="+str(no2_clock_x)+", y=" + str(round(no2_clock_y, 2)) + ", median: " + str(round(m, 2)) + ", bm-sd: " + str(
             round(sd, 2)) + ", thresh: " + str(round(thresh, 2)) + " A1_n=" + str(A1_n["no2"]) + ", below_m: " + str(
             below_m_rounded))
+    '''
 
     # checking the appropriate threshold
     if A1_n[pollutant] == 0:
@@ -188,8 +185,8 @@ def A1ap(data_points, pollutant):
             A1_auto_event_count[pollutant] += 1
 
             #for debugging
-            if pollutant == "no2":
-                print("peak")
+            #if pollutant == "no2":
+                #print("peak")
 
             return None
         else:
@@ -201,15 +198,15 @@ def A1ap(data_points, pollutant):
             A1_auto_event_count[pollutant] += 1
 
             # for debugging
-            if pollutant == "no2":
-                print("s-peak")
+            #if pollutant == "no2":
+                #print("s-peak")
 
             return None
         else:
             A1_n[pollutant] = 0
             return None
 
-#UNUSED FUNCTIONS
+#A2 was originally designed to detect a steady increase... however we have disabled it. The code is here for anyone who wants to dabble with it
 def A2ap(data_points, pollutant):
     # exiting the function if A2 is disabled
     global A2
@@ -296,6 +293,7 @@ def wind_direction_alert(data_points, pollutant):
     if enable_wind_direction_alert == False:
         return None
 
+
     #import global vars, uses same counter variables as AQ algorithm
     global wind_direction_alert_range
     global AQ_over
@@ -335,7 +333,7 @@ def zero_flush():
     global wd_trace_y
 
     #delete the leftmost entry (the trailing 0)
-    print("flushing zeros")
+    #print("flushing zeros")
     no2_trace_y.popleft()
     wcpc_trace_y.popleft()
     o3_trace_y.popleft()
@@ -352,9 +350,9 @@ def zero_flush():
 srgdfg = 0
 
 
-'''########################
-## SECTION 3. Dash stuff ##
-########################'''
+'''##################
+## SECTION 3. Dash ##
+##################'''
 avs=0
 # Helper function definitions for complex or repeated operations.
 def create_graduatedbar_helper(name):
@@ -588,7 +586,7 @@ livebar = dbc.Card(
     className="h-100"
 )
 
-#wind direction stuff
+#define wind direction plot
 wind_direction = dbc.Card(
     [
         html.H5(
@@ -649,21 +647,18 @@ app.layout = dbc.Container(
             ],
         ),
         # Update interval for the wind direction module
-        #originally was interval=interval_s * 1000
         dcc.Interval(
             id='wind-interval',
             interval=interval_s * 1000,
             n_intervals=0,
         ),
         # Update interval for instrument input
-        #originally was interval=1000
         dcc.Interval(
             id='daq-interval',
             interval=1000,
             n_intervals=0
         ),
         # Update interval for the live figures
-        #originally was interval=500
         dcc.Interval(
             id='figure-interval',
             interval=500,
@@ -871,7 +866,7 @@ def read_command(raw_command):
     """
     '*tA1' - toggles A1 on/off
     '*tAQ' - toggles AQ on/off
-    '*tWDA' - toggles wind direction alert on/off
+    '*tWDRW' - toggles wind direction alert on/off
     """
     if command[1] == 't':
         global toggle_type
@@ -901,17 +896,17 @@ def read_command(raw_command):
                 toggle_type = '(AQ ON)'
                 return None
 
-        if command[2:5] == 'wda':
+        if command[2:5] == 'wdrw':
             global enable_wind_direction_alert
             if enable_wind_direction_alert:
                 enable_wind_direction_alert = False
-                print("toggling wind direction alert OFF")
-                toggle_type = '(WDA OFF)'
+                print("toggling wind direction range warning OFF")
+                toggle_type = '(WDRW OFF)'
                 return None
             else:
                 enable_wind_direction_alert = True
-                print("toggling wind direction alert ON")
-                toggle_type = '(WDA ON)'
+                print("toggling wind direction range warning ON")
+                toggle_type = '(WDRW ON)'
                 return None
 
 
@@ -1183,7 +1178,7 @@ def get_no2_data(n):
     if redisdata['time1'] == no2_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['no2'] == 'simulated':
             global simulated_data_filenames
@@ -1219,12 +1214,12 @@ def get_no2_data(n):
     zero_flush()
 
 
-    ############ AUTOSCALE STUFF ###############
+    ############ AUTOSCALE ###############
     if enable_autoscale_dict['NO2'] and len(no2_trace_y) > 3:
         global y_range_dict
         new_interval = compute_interval(no2_trace_y,'NO2')
         y_range_dict['NO2'] = new_interval
-    ############################################
+    ######################################
 
     if simulated_or_real['no2'] == 'simulated':
         no2_clock_x += 1
@@ -1252,7 +1247,7 @@ def get_no_data(n):
     if redisdata['time6'] == no_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['no'] == 'simulated':
             global simulated_data_filenames
@@ -1315,7 +1310,7 @@ def get_wcpc_data(n):
     if redisdata['time2'] == wcpc_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['wcpc'] == 'simulated':
             global simulated_data_filenames
@@ -1438,7 +1433,7 @@ def get_teledyne_CO_data(n):
     if redisdata['time4'] == co_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['co'] == 'simulated':
             global simulated_data_filenames
@@ -1494,7 +1489,7 @@ def get_licor_data(n):
     if redisdata['time5'] == co2_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['co2'] == 'simulated':
             global simulated_data_filenames
@@ -1536,9 +1531,6 @@ def get_licor_data(n):
             return (redisdata['CO2'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
                str(redisdata['CO2']) + " " + labeldict['CO2'].split(' ')[1]
 
-#Below follow the @app.callback of other pollutants but for 'Wind Speed'
-#It is an alternative in case the wind rose plot fails
-
 @app.callback([Output('WS-bar', 'value'),
                Output('WS-bar-text', 'children')],
               Input('daq-interval', 'n_intervals'))
@@ -1555,7 +1547,7 @@ def get_wind_speed_data(n):
     if redisdata['time7'] == ws_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['ws'] == 'simulated':
             global simulated_data_filenames
@@ -1611,7 +1603,7 @@ def get_wind_direction_data(n):
     if redisdata['time8'] == wd_trace_x[-1]:
         raise dash.exceptions.PreventUpdate
     else:
-        #simulated data stuff
+        #simulated data
         global simulated_or_real
         if simulated_or_real['wd'] == 'simulated':
             global simulated_data_filenames
@@ -1652,8 +1644,6 @@ def get_wind_direction_data(n):
         else:
             return (redisdata['WD'] - minimumvalue) / (maximumvalue - minimumvalue) * 100, \
             str(redisdata['WD']) + " " + labeldict['WD'].split(' ')[1]
-
-## Here ends the alternative
 
 @app.callback(Output('liveplot', 'figure'),
               Input('figure-interval', 'n_intervals'),
@@ -1759,7 +1749,7 @@ avs =0
 #########################################'''
 if __name__ == '__main__':
 
-    #config stuff
+    #config
     parser = ConfigParser(allow_no_value=True)
     parser.read('user_defined_settings.ini')
     #global counters, ONLY change when adding new pollutants, otherwise DON'T touch these
@@ -1853,15 +1843,18 @@ if __name__ == '__main__':
         "WD": string_to_list_interval(parser.get('y-ranges', 'WD'))
     }
     enable_autoscale_dict = {
-        "NO2": parser.getboolean('y-ranges','enable_autoscale_NO2'),
-        "WCPC": parser.getboolean('y-ranges','enable_autoscale_WCPC'),
-        "O3": parser.getboolean('y-ranges','enable_autoscale_O3'),
-        "CO": parser.getboolean('y-ranges','enable_autoscale_CO'),
-        "CO2": parser.getboolean('y-ranges','enable_autoscale_CO2'),
-        "NO": parser.getboolean('y-ranges', 'enable_autoscale_NO'),
-        "WS": parser.getboolean('y-ranges', 'enable_autoscale_WS'),
-        "WD": parser.getboolean('y-ranges', 'enable_autoscale_WD')
+        "NO2": parser.getboolean('y-ranges','as_NO2'),
+        "WCPC": parser.getboolean('y-ranges','as_WCPC'),
+        "O3": parser.getboolean('y-ranges','as_O3'),
+        "CO": parser.getboolean('y-ranges','as_CO'),
+        "CO2": parser.getboolean('y-ranges','as_CO2'),
+        "NO": parser.getboolean('y-ranges', 'as_NO'),
+        "WS": parser.getboolean('y-ranges', 'as_WS'),
+        "WD": parser.getboolean('y-ranges', 'as_WD')
     }
+
+    #not using these settings, they're just unnecessary and confusing
+    '''
     autoscale_padding_dict = {
         "NO2": parser.getint('y-ranges','autoscale_padding_percentage_NO2'),
         "WCPC": parser.getint('y-ranges','autoscale_padding_percentage_WCPC'),
@@ -1871,6 +1864,17 @@ if __name__ == '__main__':
         "NO": parser.getint('y-ranges', 'autoscale_padding_percentage_NO'),
         "WS": parser.getint('y-ranges', 'autoscale_padding_percentage_WS'),
         "WD": parser.getint('y-ranges', 'autoscale_padding_percentage_WD')
+    }
+    '''
+    autoscale_padding_dict = {
+        "NO2": 10,
+        "WCPC": 10,
+        "O3": 10,
+        "CO": 10,
+        "CO2": 10,
+        "NO": 10,
+        "WS": 10,
+        "WD": 10
     }
 
     #log folder path
@@ -1889,8 +1893,8 @@ if __name__ == '__main__':
     AQ = parser.getboolean('algorithm_circuit_breaker','AQ_on')
 
     #wind direction alert settings
-    enable_wind_direction_alert = parser.getboolean('wind_direction_alert','enable_wind_direction_alert')
-    wind_direction_alert_range = string_to_list_interval(parser.get('wind_direction_alert','wind_direction_alert_range'))
+    enable_wind_direction_alert = parser.getboolean('wind_direction_range_warning','enable_wdrw')
+    wind_direction_alert_range = string_to_list_interval(parser.get('wind_direction_range_warning','range'))
 
     #A1 settings
     A1_coeff = {
