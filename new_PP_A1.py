@@ -4,7 +4,7 @@ This script will run A1 as a post processing algorithm on a sensor transcript CS
 All of the settings related to A1 in 'user_defined_settings.ini' must be specified in order for this script to work.
 """
 
-print("NOTE: this script can take some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
+print("NOTE: this script can take quite some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
 
 import math
 import csv
