@@ -3,9 +3,9 @@ Data visualization dashboard with post processing features designed specifically
 
 ## Installation
 
-PLUME Dashboard requires three pieces of downloadable software to run: Python 316, the language PLUME Dashboard is coded in, PyCharm15, a popular Python integrated development environment (IDE), and Redis13, an open source (BSD licensed), in-memory data structure store, used as a database, cache, and message broker. The latest version of Python 3 can be downloaded and installed from [https://www.python.org/downloads/]. An installation guide for PyCharm is available at [https://www.jetbrains.com/help/pycharm/installation-guide.html]. Redis can be installed by downloading and running the installer “Redis-x64-3.0.504.msi”, which can be fount at [https://github.com/microsoftarchive/redis/releases].
+PLUME Dashboard requires three pieces of downloadable software to run: Python 3, the language PLUME Dashboard is coded in, PyCharm, a popular Python integrated development environment (IDE), and Redis, an open source (BSD licensed), in-memory data structure store, used as a database, cache, and message broker. The latest version of Python 3 can be downloaded and installed from [https://www.python.org/downloads/]. An installation guide for PyCharm is available at [https://www.jetbrains.com/help/pycharm/installation-guide.html]. Redis can be installed by downloading and running the installer “Redis-x64-3.0.504.msi”, which can be fount at [https://github.com/microsoftarchive/redis/releases].
 
-PLUME Dashboard also requires the following Python Packages to run:
+PLUME Dashboard also requires the following Python packages to run:
 * dash
 * plotly
 * dash-core-components
