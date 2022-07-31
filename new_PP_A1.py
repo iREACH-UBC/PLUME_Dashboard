@@ -137,7 +137,7 @@ A1_n = {
     "wd": 0
 }
 current_chunk=0
-print("NOTE: this script can take quite some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
+print("NOTE: this script can sometimes take quite some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
 ###############################################################################################
 
 
