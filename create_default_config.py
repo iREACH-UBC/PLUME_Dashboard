@@ -18,33 +18,33 @@ config = ConfigParser(allow_no_value=True)
 #live plot y-range settings
 config['y-ranges'] = {
     'NO2': '0,100',
-    'WCPC': '0,20000',
+    'WCPC': '0,15000',
     'O3': '0,100',
-    'CO': '0,20',
-    'CO2': '0,1000',
-    'NO': '0,150',
+    'CO': '0,700',
+    'CO2': '0,700',
+    'NO': '0,80',
     'WS': '0,20',
     'WD': '0,360',
-    'as_NO2':'true',
-    'as_WCPC':'true',
-    'as_O3':'true',
-    'as_CO':'true',
-    'as_CO2':'true',
-    'as_NO':'true',
+    'as_NO2':'false',
+    'as_WCPC':'false',
+    'as_O3':'false',
+    'as_CO':'false',
+    'as_CO2':'false',
+    'as_NO':'false',
     'as_WS':'false',
     'as_WD':'false',
 }
 
 #log files directory
 config['log_directory'] = {
-    'log_files_path':'C:/Users/Chris/Desktop/Dashboard/LOG_FILES'
+    'log_files_path':''
 }
 
 #GPS merge data settings
 config['GPS_merge_data'] = {
-    'folder_path': 'C:/Users/Chris/Desktop/Dashboard/GPS',
-    'gpx_filename': 'GL770.gpx',
-    'csv_filename': 'datapoints.csv',
+    'folder_path': '',
+    'gpx_filename': 'gps_data.gpx',
+    'csv_filename': 'pollutant_data.csv',
     'output_filename': 'MERGED.csv',
     'no2_lag': '40',
     'wcpc_lag': '5',
@@ -52,8 +52,8 @@ config['GPS_merge_data'] = {
     'co_lag': '40',
     'co2_lag': '40',
     'no_lag': '40',
-    'start_time': '2022-06-30 12:58:42',
-    'end_time': '2022-06-30 14:05:16'
+    'start_time': '',
+    'end_time': ''
 }
 
 #A1 and AQ toggle
@@ -70,15 +70,15 @@ config['wind_direction_range_warning'] = {
 
 #data settings
 config['real_or_simulated'] = {
-    'NO2': 'simulated',
-    'WCPC': 'simulated',
-    'O3': 'simulated',
-    'CO': 'simulated',
-    'CO2': 'simulated',
-    'NO': 'simulated',
-    'WS': 'simulated',
-    'WD': 'simulated',
-    'sim_data_path': 'C:/Users/Chris/Desktop/Dashboard/SIMULATED_DATA',
+    'NO2': 'real',
+    'WCPC': 'real',
+    'O3': 'real',
+    'CO': 'real',
+    'CO2': 'real',
+    'NO': 'real',
+    'WS': 'real',
+    'WD': 'real',
+    'sim_data_path': '',
     'sim_NO2_filename': 'NO2_sim.csv',
     'sim_WCPC_filename': 'WCPC_sim.csv',
     'sim_O3_filename': 'O3_sim.csv',
@@ -128,7 +128,7 @@ config['A1_thresh_bump_percentile'] = {
 #misc settings for A1
 config['A1_misc'] = {
     'startup_bypass': '30',
-    'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/PEAK',
+    'folder_directory': '',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
     'chunk_size': '3000'
@@ -162,8 +162,8 @@ config['baseline'] ={
     'window_size': '3',
     'smoothing_index': '5',
     'chunk_size': '400',
-    'interlace_chunks':'false',
-    'folder_directory': 'C:/Users/Chris/Desktop/Dashboard/BASELINE',
+    'interlace_chunks':'true',
+    'folder_directory': '',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
     'settings_in_name': 'true'
@@ -171,6 +171,36 @@ config['baseline'] ={
 }
 
 #modbus settings
+config['modbus-tcp'] ={
+    'ip_address': '',
+    'port': '502',
+    'enable_no2': 'true',
+    'no2_modbus_hr': '',
+    'no2_hr_length': '2',
+    'enable_wcpc': 'true',
+    'wcpc_modbus_hr': '',
+    'wcpc_hr_length': '2',
+    'enable_o3': 'true',
+    'o3_modbus_hr': '',
+    'o3_hr_length': '2',
+    'enable_co': 'true',
+    'co_modbus_hr': '',
+    'co_hr_length': '2',
+    'enable_co2': 'true',
+    'co2_modbus_hr': '',
+    'co2_hr_length': '2',
+    'enable_no': 'true',
+    'no_modbus_hr': '',
+    'no_hr_length': '2',
+    'enable_ws': 'true',
+    'ws_modbus_hr': '',
+    'ws_hr_length': '2',
+    'enable_wd': 'true',
+    'wd_modbus_hr': '',
+    'wd_hr_length': '2',
+}
+
+'''
 config['modbus-tcp'] ={
     'ip_address': '169.254.67.85',
     'port': '502',
@@ -199,6 +229,7 @@ config['modbus-tcp'] ={
     'wd_modbus_hr': '13',
     'wd_hr_length': '2',
 }
+'''
 
 
 

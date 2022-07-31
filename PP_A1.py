@@ -4,7 +4,7 @@ This script will run A1 as a post processing algorithm on a sensor transcript CS
 All of the settings related to A1 in 'user_defined_settings.ini' must be specified in order for this script to work.
 """
 
-print("NOTE: this script can take quite some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
+
 
 import math
 import csv
@@ -13,9 +13,15 @@ from collections import deque
 import statistics
 from configparser import ConfigParser
 import numpy as np
+import sys
+from os.path import exists
 
 
 ####################################### GLOBAL SETTINGS #######################################
+if exists('user_defined_settings.ini') == False:
+    sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
+
+
 parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
@@ -69,9 +75,20 @@ queue_size = parser.getint('A1_misc', 'chunk_size')
 trace_length = 60
 
 directory = parser.get('A1_misc', 'folder_directory')
+
+if directory == '':
+    sys.exit("ERROR: please specify a directory for the [A1_misc] \"folder_directory\" setting")
+
+if '\\' in directory:
+    directory.replace("\\", "/")
+
 if (directory[-1] != '/'):
     directory += '/'
 filename = directory+(parser.get('A1_misc','input_filename'))
+
+if exists(filename) == False:
+    sys.exit('ERROR: \"'+filename+'\" file not found, please check [A1_misc] \"input_filename\" setting')
+
 output_csv = directory+(parser.get('A1_misc','output_filename'))
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)']
@@ -120,7 +137,7 @@ A1_n = {
     "wd": 0
 }
 current_chunk=0
-
+print("NOTE: this script can take quite some time to run (typically about 10 seconds for every 5000 rows depending on the user's computer)")
 ###############################################################################################
 
 

@@ -32,6 +32,7 @@ import numpy as np
 from configparser import ConfigParser
 from pathlib import Path
 import json
+from os.path import exists
 
 #NOTE: when you see variables like "fold_start = 0" or "avs = 0", those are just lines of folds starting and ending (pycharm doesn't want fold borders to be comments)
 
@@ -1189,15 +1190,17 @@ def get_no2_data(n):
             # grabbing simulated data
             if simulated_data_filetypes['no2'] == 'csv':
                 no2_clock_y = no2_sim_csv[no2_clock_x-1]
+                no2_clock_y = round(no2_clock_y, 2)
                 no2_trace_y.append(no2_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['no2'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 no2_clock_y = sheet["B" + str(no2_clock_x)].value
+                no2_clock_y = round(no2_clock_y, 2)
                 no2_trace_y.append(no2_clock_y)
         else:
-            no2_trace_y.append(redisdata['NO2'])
+            no2_trace_y.append(round(redisdata['NO2'],2))
 
         no2_trace_x.append(redisdata['time1'])
 
@@ -1257,15 +1260,17 @@ def get_no_data(n):
             # grab simulated data
             if simulated_data_filetypes['no'] == 'csv':
                 no_clock_y = no_sim_csv[no_clock_x-1]
+                no_clock_y = round(no_clock_y, 2)
                 no_trace_y.append(no_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['no'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 no_clock_y = sheet["B" + str(no_clock_x)].value
+                no_clock_y = round(no_clock_y, 2)
                 no_trace_y.append(no_clock_y)
         else:
-            no_trace_y.append(redisdata['NO'])
+            no_trace_y.append(round(redisdata['NO'],2))
 
         no_trace_x.append(redisdata['time6'])
 
@@ -1320,15 +1325,17 @@ def get_wcpc_data(n):
             #grabbing our simulated data
             if simulated_data_filetypes['wcpc'] == 'csv':
                 wcpc_clock_y = wcpc_sim_csv[wcpc_clock_x-1]
+                wcpc_clock_y = int(wcpc_clock_y)
                 wcpc_trace_y.append(wcpc_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['wcpc'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 wcpc_clock_y = sheet["B" + str(wcpc_clock_x)].value
+                wcpc_clock_y = int(wcpc_clock_y)
                 wcpc_trace_y.append(wcpc_clock_y)
         else:
-            wcpc_trace_y.append(redisdata['concentration'])
+            wcpc_trace_y.append(int(redisdata['concentration']))
 
         wcpc_trace_x.append(redisdata['time2'])
 
@@ -1382,15 +1389,18 @@ def get_2b_data(n):
 
             if simulated_data_filetypes['o3'] == 'csv':
                 o3_clock_y = o3_sim_csv[o3_clock_x-1]
+                o3_clock_y = round(o3_clock_y, 2)
                 o3_trace_y.append(o3_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['o3'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 o3_clock_y = sheet["B" + str(o3_clock_x)].value
+                o3_clock_y = round(o3_clock_y, 2)
                 o3_trace_y.append(o3_clock_y)
         else:
-            o3_trace_y.append(redisdata['Ozone'])
+            o3_trace_y.append(round(redisdata['Ozone'],2))
+
 
         o3_trace_x.append(redisdata['time3'])
 
@@ -1442,15 +1452,17 @@ def get_teledyne_CO_data(n):
 
             if simulated_data_filetypes['co'] == 'csv':
                 co_clock_y = co_sim_csv[co_clock_x-1]
+                co_clock_y = round(co_clock_y, 2)
                 co_trace_y.append(co_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['co'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 co_clock_y = sheet["B" + str(co_clock_x)].value
+                co_clock_y = round(co_clock_y, 2)
                 co_trace_y.append(co_clock_y)
         else:
-            co_trace_y.append(redisdata['CO'])
+            co_trace_y.append(round(redisdata['CO'],2))
 
         co_trace_x.append(redisdata['time4'])
 
@@ -1498,15 +1510,17 @@ def get_licor_data(n):
 
             if simulated_data_filetypes['co2'] == 'csv':
                 co2_clock_y = co2_sim_csv[co2_clock_x-1]
+                co2_clock_y = round(co2_clock_y, 2)
                 co2_trace_y.append(co2_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['co2'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 co2_clock_y = sheet["B" + str(co2_clock_x)].value
+                co2_clock_y = round(co2_clock_y, 2)
                 co2_trace_y.append(co2_clock_y)
         else:
-            co2_trace_y.append(redisdata['CO2'])
+            co2_trace_y.append(round(redisdata['CO2'],2))
 
         co2_trace_x.append(redisdata['time5'])
 
@@ -1556,15 +1570,18 @@ def get_wind_speed_data(n):
 
             if simulated_data_filetypes['ws'] == 'csv':
                 ws_clock_y = ws_sim_csv[ws_clock_x-1]
+                ws_clock_y = round(ws_clock_y, 2)
                 ws_trace_y.append(ws_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['ws'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 ws_clock_y = sheet["B" + str(ws_clock_x)].value
+                ws_clock_y = round(ws_clock_y, 2)
                 ws_trace_y.append(ws_clock_y)
         else:
-            ws_trace_y.append(redisdata['WS'])
+            ws_trace_y.append(round(redisdata['WS'],2))
+
 
         ws_trace_x.append(redisdata['time7'])
 
@@ -1612,15 +1629,17 @@ def get_wind_direction_data(n):
 
             if simulated_data_filetypes['wd'] == 'csv':
                 wd_clock_y = wd_sim_csv[wd_clock_x-1]
+                wd_clock_y = round(wd_clock_y, 2)
                 wd_trace_y.append(wd_clock_y)
             else:
                 xlsx_file = Path('SimData', simulated_data_filenames['wd'])
                 wb_obj = openpyxl.load_workbook(xlsx_file)
                 sheet = wb_obj.active
                 wd_clock_y = sheet["B" + str(wd_clock_x)].value
+                wd_clock_y = round(wd_clock_y, 2)
                 wd_trace_y.append(wd_clock_y)
         else:
-            wd_trace_y.append(redisdata['WD'])
+            wd_trace_y.append(round(redisdata['WD'],2))
 
         wd_trace_x.append(redisdata['time8'])
 
@@ -1748,6 +1767,9 @@ avs =0
 ## SECTION 6. Settings and initialization ##
 #########################################'''
 if __name__ == '__main__':
+
+    if exists('user_defined_settings.ini') == False:
+        sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
 
     #config
     parser = ConfigParser(allow_no_value=True)
@@ -1879,6 +1901,10 @@ if __name__ == '__main__':
 
     #log folder path
     log_folder_path = parser.get('log_directory','log_files_path')
+    if log_folder_path == '':
+        sys.exit("ERROR: Please specify a directory in the [log_directory] \"log_files_path\" setting")
+    if '\\' in log_folder_path:
+        log_folder_path.replace("\\", "/")
     if log_folder_path.endswith('/'):
         log_folder_path.removesuffix('/')
 
@@ -1980,13 +2006,27 @@ if __name__ == '__main__':
         "wd": parser.get('real_or_simulated', 'WD')
     }
 
+    #check if using all real data
+    all_real = True
+    for i in simulated_or_real:
+        if simulated_or_real[i] == 'simulated':
+            all_real = False
+            break
+
     #simulated or real switch error handling
     for i in simulated_or_real:
         if (simulated_or_real[i] != 'real') and (simulated_or_real[i] != 'simulated'):
-            sys.exit('ERROR: the setting \"real_or_simulated\" for ' + i + ' must be set to either \"simulated\" or \"real\"')
+            sys.exit('ERROR: the [real_or_simulated] \"'+i+'\" setting must be set to either \"simulated\" or \"real\"')
 
     #simulated data path and filenames
     simulated_data_path = parser.get('real_or_simulated', 'sim_data_path')
+
+    if (simulated_data_path == '') and (all_real == False):
+        sys.exit('ERROR: please specify a directory for the [real_or_simulated] \"sim_data_path\" setting')
+
+    if '\\' in simulated_data_path:
+        simulated_data_path.replace("\\", "/")
+
     if (simulated_data_path[-1] != '/'):
         simulated_data_path += '/'
     simulated_data_filenames = {
@@ -2015,6 +2055,11 @@ if __name__ == '__main__':
         simulated_data_filenames['ws'] = simulated_data_path + parser.get('real_or_simulated','sim_WS_filename')
     if simulated_or_real['wd'] == 'simulated':
         simulated_data_filenames['wd'] = simulated_data_path + parser.get('real_or_simulated','sim_WD_filename')
+
+    for i in simulated_or_real:
+        if simulated_or_real[i] == 'simulated':
+            if exists(simulated_data_filenames[i]) == False:
+                sys.exit("ERROR: \""+simulated_data_filenames[i]+'\" file not found, please check [real_or_simlated] \"sim_'+i+'_filename\" setting')
 
     #simulated data file types
     simulated_data_filetypes = {

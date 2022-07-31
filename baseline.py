@@ -13,6 +13,11 @@ import numpy as np
 import pandas as pd
 from collections import deque
 from configparser import ConfigParser
+from os.path import exists
+
+if exists('user_defined_settings.ini') == False:
+    sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
+
 
 def string_to_list_interval(string_in):
 
@@ -40,8 +45,12 @@ def string_to_list_interval(string_in):
     return result
 
 ####################################### GLOBAL SETTINGS #######################################
+
+
 parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
+
+
 
 setting_window_size = parser.getint('baseline', 'window_size')
 setting_smoothing = parser.getint('baseline', 'smoothing_index')
@@ -55,9 +64,20 @@ is_formatted = True #manual override
 #col_interval[0] -= 1
 
 directory = parser.get('baseline', 'folder_directory')
+
+if directory == '':
+    sys.exit('ERROR: please specify a directory for the [baseline] \"folder_directory\" setting')
+
+if '\\' in directory:
+    directory.replace("\\", "/")
+
 if (directory[-1] != '/'):
     directory += '/'
 filename = directory+(parser.get('baseline','input_filename'))
+
+if exists(filename) == False:
+    sys.exit('ERROR: \"'+filename+'\" file not found, please check [baseline] \"input_filename\" setting')
+
 output_csv = directory+(parser.get('baseline','output_filename'))
 include_settings_in_filename = parser.getboolean('baseline','settings_in_name')
 if (include_settings_in_filename):

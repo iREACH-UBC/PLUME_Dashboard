@@ -30,6 +30,10 @@ import random
 import datetime
 import json
 from configparser import ConfigParser
+from os.path import exists
+
+if exists('user_defined_settings.ini') == False:
+    sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
 
 #function for testing
 def gen_fake_data():
@@ -160,6 +164,10 @@ if __name__ == "__main__":
         'wd': parser.getboolean('modbus-tcp','enable_wd')
     }
     ip_setting = parser.get('modbus-tcp','ip_address')
+
+    if ip_setting == '':
+        sys.exit("ERROR: please input an ip address for the [modbus-tcp] \"ip_address\" setting")
+
     port_setting = parser.getint('modbus-tcp','port')
 
     holding_regs_setting = dict(

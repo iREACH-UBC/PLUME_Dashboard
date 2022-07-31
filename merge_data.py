@@ -14,18 +14,34 @@ import re
 import numpy as np
 from configparser import ConfigParser
 import os
+import sys
+from os.path import exists
+
+if exists('user_defined_settings.ini') == False:
+  sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
 
 parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
-
 directory = parser.get('GPS_merge_data', 'folder_path')
+if directory == '':
+  sys.exit("ERROR: Please specify a directory in the [GPS_merge_data] folder_path setting ")
+
+if '\\' in directory:
+  directory.replace("\\", "/")
+
 if (directory[-1] != '/'):
     directory += '/'
 GPXfile = directory+(parser.get('GPS_merge_data','gpx_filename'))
 #GPXfile = 'input\GL770.gpx'
 
+if exists(GPXfile) == False:
+  sys.exit('ERROR: \"'+GPXfile+'\" file not found, please check [GPS_merge_data] \"gpx_filename\" setting')
+
 CSVinput = directory+(parser.get('GPS_merge_data','csv_filename'))
+
+if exists(CSVinput) == False:
+  sys.exit('ERROR: \"'+CSVinput+'\" file not found, please check [GPS_merge_data] \"csv_filename\" setting')
 
 output_file = directory+(parser.get('GPS_merge_data','output_filename'))
 
@@ -43,8 +59,15 @@ for pollutant in lags:
   if lags[pollutant] > max_lag:
     max_lag = lags[pollutant]
 
+
+
 Dash_start_time = parser.get('GPS_merge_data','start_time')
+if Dash_start_time == '':
+  sys.exit('ERROR: please input a time for the [GPS_merge_data] \"start_time\" setting formatted as \"yyyy-mm-dd hh:mm:ss\"')
+
 Dash_end_time = parser.get('GPS_merge_data','end_time')
+if Dash_end_time == '':
+  sys.exit('ERROR: please input a time for the [GPS_merge_data] \"end_time\" setting formatted as \"yyyy-mm-dd hh:mm:ss\"')
 
 Dash_end_time = datetime.strptime(Dash_end_time, "%Y-%m-%d %H:%M:%S")
 Dash_end_time = Dash_end_time - relativedelta(seconds=max_lag)
