@@ -1,86 +1,15 @@
-"""
-This script will merge a sensor transcript CSV with a .gpx GPS file by matching timestamps.
-
-The '[GPS_merge_data]' settings in 'user_defined_settings.ini' must be specified in order for this script to run.
-"""
-
-
 import pandas as pd
 import csv
 from datetime import datetime
 from dateutil import tz
-from dateutil.relativedelta import relativedelta
 import re
 import numpy as np
-from configparser import ConfigParser
-import os
-import sys
-from os.path import exists
-
-if exists('user_defined_settings.ini') == False:
-  sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
-
-parser = ConfigParser(allow_no_value=True)
-parser.read('user_defined_settings.ini')
-
-directory = parser.get('GPS_merge_data', 'folder_path')
-if directory == '':
-  sys.exit("ERROR: Please specify a directory in the [GPS_merge_data] folder_path setting ")
-
-if '\\' in directory:
-  directory.replace("\\", "/")
-
-if (directory[-1] != '/'):
-    directory += '/'
-GPXfile = directory+(parser.get('GPS_merge_data','gpx_filename'))
-#GPXfile = 'input\GL770.gpx'
-
-if exists(GPXfile) == False:
-  sys.exit('ERROR: \"'+GPXfile+'\" file not found, please check [GPS_merge_data] \"gpx_filename\" setting')
-
-CSVinput = directory+(parser.get('GPS_merge_data','csv_filename'))
-
-if exists(CSVinput) == False:
-  sys.exit('ERROR: \"'+CSVinput+'\" file not found, please check [GPS_merge_data] \"csv_filename\" setting')
-
-output_file = directory+(parser.get('GPS_merge_data','output_filename'))
-
-lags = {
-  'no2': abs(parser.getint('GPS_merge_data','no2_lag')),
-  'wcpc': abs(parser.getint('GPS_merge_data','wcpc_lag')),
-  'o3': abs(parser.getint('GPS_merge_data','o3_lag')),
-  'co': abs(parser.getint('GPS_merge_data','co_lag')),
-  'co2': abs(parser.getint('GPS_merge_data','co2_lag')),
-  'no': abs(parser.getint('GPS_merge_data','no_lag'))
-  }
-
-max_lag=0
-for pollutant in lags:
-  if lags[pollutant] > max_lag:
-    max_lag = lags[pollutant]
-
-
-
-Dash_start_time = parser.get('GPS_merge_data','start_time')
-if Dash_start_time == '':
-  sys.exit('ERROR: please input a time for the [GPS_merge_data] \"start_time\" setting formatted as \"yyyy-mm-dd hh:mm:ss\"')
-
-Dash_end_time = parser.get('GPS_merge_data','end_time')
-if Dash_end_time == '':
-  sys.exit('ERROR: please input a time for the [GPS_merge_data] \"end_time\" setting formatted as \"yyyy-mm-dd hh:mm:ss\"')
-
-Dash_end_time = datetime.strptime(Dash_end_time, "%Y-%m-%d %H:%M:%S")
-Dash_end_time = Dash_end_time - relativedelta(seconds=max_lag)
-Dash_end_time = Dash_end_time.strftime("%Y-%m-%d %H:%M:%S")
-
-
-
 
 ############################################# Code for GL770 GPS #############################################
 
 ############### Converting from GPX to csv ###############
 
-
+GPXfile = 'input\GL770.gpx'
 data = open(GPXfile).read()
 
 lat = np.array(re.findall(r'lat="([^"]+)', data), dtype = float)
@@ -92,11 +21,11 @@ print(combined)
 
 df = pd.DataFrame(combined)
 df.columns = ['latitude', 'longitude', 'time']
-df.to_csv('aux_files\GL770.csv')
+df.to_csv('output\GL770.csv')
 
 ############### Changing from UTC time to Pacific time ###############
 
-with open('aux_files\GL770.csv', 'r') as csv_file:
+with open('output\GL770.csv', 'r') as csv_file:
   csv_reader = csv.DictReader(csv_file)
 
   times = []
@@ -126,15 +55,15 @@ times.sort()
 all_data = np.array(list(zip(lat, lon, times)))
 all_data_df = pd.DataFrame(all_data)
 all_data_df.columns = ['latitude', 'longitude', 'time']
-all_data_df.to_csv('aux_files\\new_GL770.csv') #Edited/Inserted 29-6-22
+all_data_df.to_csv('output\\new_GL770.csv') #Edited/Inserted 29-6-22
 
 ############### Convert to datetime so that it can merge with dashboard data ###############
 
-new_GL770 = pd.read_csv('aux_files\\new_GL770.csv') #Edited/Inserted 29-6-22
+new_GL770 = pd.read_csv('output\\new_GL770.csv') #Edited/Inserted 29-6-22
 new_GL770['time'] = pd.to_datetime(new_GL770['time'], errors = 'coerce')
 
 ############### Import dashboard data ###############
-data_table = pd.read_csv(CSVinput) #Edited/Inserted 29-6-22
+data_table = pd.read_csv('input\datapoints.csv') #Edited/Inserted 29-6-22
 data_table.rename(columns={'Time': 'time'}, inplace=True) # Edited/Inserted 29-6-22
 data_table['time'] = pd.to_datetime(data_table['time'], errors = 'coerce')
 
@@ -142,38 +71,44 @@ data_table['time'] = pd.to_datetime(data_table['time'], errors = 'coerce')
 
 gl770_data = pd.merge_asof(new_GL770, data_table, on = 'time', direction = 'nearest')
 
+
 ####### Fixing time-lag ####### Edited/Inserted 29-6-22
 # For mobile air quality monitoring, one needs to account the lag between air entering the inlet and concentration read by the instruments
 # Below one can insert as variables the 'lag time' for each instrument
 # What follows can be cut or added for every new pollutant
 
+NO2_lag = -40
+O3_lag = -40
+CO_lag = -40
+CO2_lag = -40
+NO_lag = -40
+WCPC_lag = -5
 
-
-gl770_data['NO2 (ppb)'] = gl770_data['NO2 (ppb)'].shift((-1)*lags['no2'])  # Finds column with name '...' and shift its values down by a lag. If desired to shift up, include minus sign
-gl770_data['O3 (ppb)'] = gl770_data['O3 (ppb)'].shift((-1)*lags['o3'])
-gl770_data['CO (ppm)'] = gl770_data['CO (ppm)'].shift((-1)*lags['co'])
-gl770_data['NO (ppb)'] = gl770_data['NO (ppb)'].shift((-1)*lags['no'])
-gl770_data['CO2 (ppm)'] = gl770_data['CO2 (ppm)'].shift((-1)*lags['co2'])
-gl770_data['WCPC (#/cm^3)'] = gl770_data['WCPC (#/cm^3)'].shift((-1)*lags['wcpc'])
+gl770_data['NO2 (ppb)'] = gl770_data['NO2 (ppb)'].shift(NO2_lag)  # Finds column with name '...' and shift its values down by a lag. If desired to shift up, include minus sign
+gl770_data['O3 (ppb)'] = gl770_data['O3 (ppb)'].shift(O3_lag)
+gl770_data['CO (ppm)'] = gl770_data['CO (ppm)'].shift(CO_lag)
+gl770_data['NO (ppb)'] = gl770_data['NO (ppb)'].shift(NO_lag)
+gl770_data['CO2 (ppm)'] = gl770_data['CO2 (ppm)'].shift(CO2_lag)
+gl770_data['WCPC (#/cm^3)'] = gl770_data['WCPC (#/cm^3)'].shift(WCPC_lag)
 
 #### Cut-off first and last rows of obsolete data #### Edited/Inserted 29-6-22
 # Because GPS should be started before running the Dashboard, it will be logging first
 # When finding the nearest time to merge the Air Quality Data, the program will keep repeating the first data row form the Dashboard log until the Dash time hits
 # Below one can filter the specific time to account both Dash and GPS data
 
-
+Dash_start_time = '2022-08-04 08:13:28'
+Dash_end_time = '2022-08-04 13:12:45' # consider the lag time here, e.g., if the Dash finishes at 12:05:40 and the highest lag time is 40s put 12:05:00
 gl770_data = gl770_data[~(gl770_data['time'] < Dash_start_time)]
 gl770_data = gl770_data[~(gl770_data['time'] > Dash_end_time)]
 
 ############### Export as a csv ###############
 
-gl770_data.to_csv(output_file) #Edited/Inserted 29-6-22
+gl770_data.to_csv('output\Merged_AQ_GPS_Data_final.csv') #Edited/Inserted 29-6-22
 
-os.remove('aux_files\\new_GL770.csv')
-os.remove('aux_files\GL770.csv')
+'''
+### Garmin GPS stuff comment out for now ### GL770 has better time resolution ###
 
-"""
-#below is the code for a garmin GPS... We don't use it but the code is here for anyone who wants to dabble with it
+############################################# Code for Garmin GPS #############################################
 
 ############### Converting from GPX to csv ###############
 
@@ -214,7 +149,7 @@ Garmin_times.sort()
 
 ############### Writing the new times (plus lat and long) back to a csv ###############
 
-Garmin_all_data = np.array(list(zip(lat, lon, times)))
+Garmin_all_data = np.array(list(zip(lat, lon, Garmin_times)))
 Garmin_all_data_df = pd.DataFrame(Garmin_all_data)
 Garmin_all_data_df.columns = ['latitude', 'longitude', 'time']
 Garmin_all_data_df.to_csv('new_Garmin.csv')
@@ -224,12 +159,49 @@ Garmin_all_data_df.to_csv('new_Garmin.csv')
 new_Garmin = pd.read_csv('new_Garmin.csv')
 new_Garmin['time'] = pd.to_datetime(new_Garmin['time'], errors = 'coerce')
 
+############### Import dashboard data ###############
+data_table = pd.read_csv('input\datapoints.csv') #Edited/Inserted 29-6-22
+data_table.rename(columns={'Time': 'time'}, inplace=True) # Edited/Inserted 29-6-22
+data_table['time'] = pd.to_datetime(data_table['time'], errors = 'coerce')
+
+####### Fixing time-lag ####### Edited/Inserted 29-6-22
+# For mobile air quality monitoring, one needs to account the lag between air entering the inlet and concentration read by the instruments
+# Below one can insert as variables the 'lag time' for each instrument
+# What follows can be cut or added for every new pollutant
+
+NO2_lag = -40
+O3_lag = -40
+CO_lag = -40
+CO2_lag = -40
+NO_lag = -40
+WCPC_lag = -5
+
+data_table['NO2 (ppb)'] = data_table['NO2 (ppb)'].shift(NO2_lag)  # Finds column with name '...' and shift its values down by a lag. If desired to shift up, include minus sign
+data_table['O3 (ppb)'] = data_table['O3 (ppb)'].shift(O3_lag)
+data_table['CO (ppm)'] = data_table['CO (ppm)'].shift(CO_lag)
+data_table['NO (ppb)'] = data_table['NO (ppb)'].shift(NO_lag)
+data_table['CO2 (ppm)'] = data_table['CO2 (ppm)'].shift(CO2_lag)
+data_table['WCPC (#/cm^3)'] = data_table['WCPC (#/cm^3)'].shift(WCPC_lag)
+
+############### Merge dashboard and GL770 GPS data ###############
+
+garmin_data = pd.merge_asof(new_Garmin, data_table, on = 'time', direction = 'nearest')
+
 ############### Merge dashboard and Garmin GPS data ###############
 
 garmin_data = pd.merge_asof(new_Garmin, data_table, on = 'time', direction = 'nearest')
 
+#### Cut-off first and last rows of obsolete data #### Edited/Inserted 29-6-22
+# Because GPS should be started before running the Dashboard, it will be logging first
+# When finding the nearest time to merge the Air Quality Data, the program will keep repeating the first data row form the Dashboard log until the Dash time hits
+# Below one can filter the specific time to account both Dash and GPS data
+
+Dash_start_time = '2022-08-02 08:27:15'
+Dash_end_time = '2022-08-02 13:59:20' # consider the lag time here, e.g., if the Dash finishes at 12:05:40 and the highest lag time is 40s put 12:05:00
+garmin_data = garmin_data[~(garmin_data['time'] < Dash_start_time)]
+garmin_data = garmin_data[~(garmin_data['time'] > Dash_end_time)]
+
 ############### Export as a csv ###############
 
-garmin_data.to_csv('output\Garmin_final.csv')
-
-"""
+garmin_data.to_csv('output\Merged_AQ_GPS_Data_final.csv')
+'''
