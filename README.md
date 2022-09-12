@@ -26,7 +26,7 @@ Alternatively, all of the packages can be installed by opening the “requiremen
 
 ## Running PLUME Dashboard
 Before running PLUME Dashboard, values for the following settings (which are blank by default) must be specified in the “user_defined_settings.ini” file:
-* log_directory], log_files_path
+* [log_directory], log_files_path
 * (if one wishes to use the simulated data feature) [real_or_simulated], sim_data_path
 
 If one wishes to use the provided modbus-tcp_daq.py script, values must be entered for the [modbus-tcp] settings as well. The pollutant specific settings can be left blank for pollutants that are disabled.
