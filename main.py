@@ -102,6 +102,9 @@ wd_trace_container = deque([dict(x=0, y=0)], maxlen=1)
 #helper function for settings loading, changes "int,int" into [int,int]
 def string_to_list_interval(string_in):
 
+    # remove all spaces from string_in
+    string_in = string_in.replace(" ", "")
+
     #define vars
     comma_index = 0
     lower=""

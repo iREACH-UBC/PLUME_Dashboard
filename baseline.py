@@ -18,8 +18,11 @@ from os.path import exists
 if exists('user_defined_settings.ini') == False:
     sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
 
-
+#helper function for grabbing settings
 def string_to_list_interval(string_in):
+
+    #remove all spaces from string_in
+    string_in = string_in.replace(" ", "")
 
     #define vars
     comma_index = 0
@@ -44,16 +47,58 @@ def string_to_list_interval(string_in):
     result.append(int(upper))
     return result
 
+#used for grabbing bulk processing
+def full_string_to_int_list(string_in):
+
+    # remove all spaces from string_in
+    string_in = string_in.replace(" ", "")
+
+    string_in += ','
+    output=[]
+    adding_to_result=''
+
+    for i in range(0,len(string_in)):
+        if string_in[i] == ',':
+            output.append(int(adding_to_result))
+            adding_to_result=''
+        else:
+            adding_to_result += string_in[i]
+
+    return output
+
+#fills in settings for smaller bulk processing list
+def fill_smaller_bulk(smaller,target_length):
+    while len(smaller) < target_length:
+        smaller.append(smaller[-1])
+    return smaller
+
 ####################################### GLOBAL SETTINGS #######################################
 
 
 parser = ConfigParser(allow_no_value=True)
 parser.read('user_defined_settings.ini')
 
+bulk_processing = parser.getboolean('baseline_bulk_processing','enable_bulk_processing')
 
+#dealing with bulk processing specific settings
+if bulk_processing:
+    include_settings_in_filename = True
+    all_window_sizes = full_string_to_int_list(parser.get('baseline_bulk_processing','window_sizes'))
+    setting_window_size = all_window_sizes[0]
+    all_smoothing_indexes = full_string_to_int_list(parser.get('baseline_bulk_processing','smoothing_indexes'))
+    setting_smoothing = all_smoothing_indexes[0]
 
-setting_window_size = parser.getint('baseline', 'window_size')
-setting_smoothing = parser.getint('baseline', 'smoothing_index')
+    if len(all_window_sizes) >= len(all_smoothing_indexes):
+        runs = len(all_window_sizes)
+        all_smoothing_indexes = fill_smaller_bulk(all_smoothing_indexes,runs)
+    else:
+        runs = len(all_smoothing_indexes)
+        all_window_sizes = fill_smaller_bulk(all_window_sizes,runs)
+else:
+    setting_window_size = parser.getint('baseline', 'window_size')
+    setting_smoothing = parser.getint('baseline', 'smoothing_index')
+    include_settings_in_filename = parser.getboolean('baseline', 'settings_in_name')
+
 queue_size = parser.getint('baseline', 'chunk_size') #effectively "chunk size"
 #max_queue_size = parser.getint('baseline', 'max_chunk_size')
 #min_queue_size = parser.getint('baseline', 'min_chunk_size')
@@ -63,29 +108,26 @@ is_formatted = True #manual override
 #col_interval = string_to_list_interval(parser.get('baseline','columns_with_data'))
 #col_interval[0] -= 1
 
+#grabbing directory, fixing formatting, error handling
 directory = parser.get('baseline', 'folder_directory')
-
 if directory == '':
     sys.exit('ERROR: please specify a directory for the [baseline] \"folder_directory\" setting')
-
 if '\\' in directory:
     directory.replace("\\", "/")
-
 if (directory[-1] != '/'):
     directory += '/'
 filename = directory+(parser.get('baseline','input_filename'))
-
 if exists(filename) == False:
     sys.exit('ERROR: \"'+filename+'\" file not found, please check [baseline] \"input_filename\" setting')
 
+#handling output filename
 output_csv = directory+(parser.get('baseline','output_filename'))
-include_settings_in_filename = parser.getboolean('baseline','settings_in_name')
 if (include_settings_in_filename):
     filename_no_extension = ''
     for i in range(0, len(output_csv)):
         if output_csv[(i):(i+4)].lower() == '.csv':
             filename_no_extension = output_csv[0:i]
-    output_csv = filename_no_extension + ", window_size = "+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing)
+    output_csv = filename_no_extension + ", window_size = "+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing)+', chunk_size='+str(queue_size)
     if interlace_chunks:
         output_csv += ", interlaced chunks.csv"
     else:
@@ -93,6 +135,7 @@ if (include_settings_in_filename):
 
 col_names = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)']
 output_cols = ["Row","Time", "NO2 (ppb)", "WCPC (#/cm^3)", "O3 (ppb)", "CO (ppb)", "CO2 (ppm)",'NO (ppb)','WS (m/s)','WD (degrees)',"","NO2 baseline (ppb)", "WCPC baseline (#/cm^3)", "O3 baseline (ppb)", "CO baseline (ppb)", "CO2 baseline (ppm)",'NO baseline (ppb)','WS baseline (m/s)','WD baseline (degrees)']
+settings_in_output = False #manual override
 
 current_chunk = 0 #global counter, DO NOT CHANGE, KEEP IT SET AT 0
 ###############################################################################################
@@ -259,147 +302,355 @@ def compute_baseline(data_chunk, window_size, smoothing):
     return output_list
 
 
-if interlace_chunks:
-    while True:
-        #read in the current chunk
-        data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
-
-        #convert current chunk to lists
-        no2_list = data["NO2 (ppb)"].to_list()
-        wcpc_list = data["WCPC (#/cm^3)"].to_list()
-        o3_list = data["O3 (ppb)"].to_list()
-        co_list = data["CO (ppb)"].to_list()
-        co2_list = data["CO2 (ppm)"].to_list()
-        no_list = data['NO (ppb)'].to_list()
-        ws_list = data['WS (m/s)'].to_list()
-        wd_list = data['WD (degrees)'].to_list()
-        row_list = data["Row"].to_list()
-        time_list = data["Time"].to_list()
-
-        #compute baseline for current chunk and save as it's own list
-        no2_baseline = compute_baseline(no2_list,setting_window_size,setting_smoothing)
-        wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
-        o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
-        co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
-        co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
-        no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
-        ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
-        wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
-
-        #check if there's data from previous chunk that we can use for interlacing
-        if (current_chunk != 0):
-            if more_lists_full:
-                no2_baseline = overwrite_first_half(no2_baseline,no2_baseline_more)
-                wcpc_baseline = overwrite_first_half(wcpc_baseline, wcpc_baseline_more)
-                o3_baseline = overwrite_first_half(o3_baseline, o3_baseline_more)
-                co_baseline = overwrite_first_half(co_baseline, co_baseline_more)
-                co2_baseline = overwrite_first_half(co2_baseline, co2_baseline_more)
-                no_baseline = overwrite_first_half(no_baseline, no_baseline_more)
-                ws_baseline = overwrite_first_half(ws_baseline, ws_baseline_more)
-                wd_baseline = overwrite_first_half(wd_baseline, wd_baseline_more)
 
 
-        #check if there's data ahead that we can use for interlacing
-        if len(row_list) == queue_size:
-            # read in current chunk with the first half of the next chunk
-            data_more = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=int(2 * queue_size))
+#non bulk processing
+if bulk_processing == False:
+    if interlace_chunks:
+        while True:
+            #read in the current chunk
+            data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
 
-            #save this increased chunk to new lists
-            no2_list_more = data_more["NO2 (ppb)"].to_list()
-            wcpc_list_more = data_more["WCPC (#/cm^3)"].to_list()
-            o3_list_more = data_more["O3 (ppb)"].to_list()
-            co_list_more = data_more["CO (ppb)"].to_list()
-            co2_list_more = data_more["CO2 (ppm)"].to_list()
-            no_list_more = data_more['NO (ppb)'].to_list()
-            ws_list_more = data_more['WS (m/s)'].to_list()
-            wd_list_more = data_more['WD (degrees)'].to_list()
-            row_list_more = data_more["Row"].to_list()
+            #convert current chunk to lists
+            no2_list = data["NO2 (ppb)"].to_list()
+            wcpc_list = data["WCPC (#/cm^3)"].to_list()
+            o3_list = data["O3 (ppb)"].to_list()
+            co_list = data["CO (ppb)"].to_list()
+            co2_list = data["CO2 (ppm)"].to_list()
+            no_list = data['NO (ppb)'].to_list()
+            ws_list = data['WS (m/s)'].to_list()
+            wd_list = data['WD (degrees)'].to_list()
+            row_list = data["Row"].to_list()
+            time_list = data["Time"].to_list()
 
-            # label current more lists as full or not
-            if len(row_list_more) == (2*queue_size):
-                more_lists_full = True
+            #compute baseline for current chunk and save as it's own list
+            no2_baseline = compute_baseline(no2_list,setting_window_size,setting_smoothing)
+            wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
+            o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
+            co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
+            co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
+            no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+            ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+            wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
+
+            #check if there's data from previous chunk that we can use for interlacing
+            if (current_chunk != 0):
+                if more_lists_full:
+                    no2_baseline = overwrite_first_half(no2_baseline,no2_baseline_more)
+                    wcpc_baseline = overwrite_first_half(wcpc_baseline, wcpc_baseline_more)
+                    o3_baseline = overwrite_first_half(o3_baseline, o3_baseline_more)
+                    co_baseline = overwrite_first_half(co_baseline, co_baseline_more)
+                    co2_baseline = overwrite_first_half(co2_baseline, co2_baseline_more)
+                    no_baseline = overwrite_first_half(no_baseline, no_baseline_more)
+                    ws_baseline = overwrite_first_half(ws_baseline, ws_baseline_more)
+                    wd_baseline = overwrite_first_half(wd_baseline, wd_baseline_more)
+
+
+            #check if there's data ahead that we can use for interlacing
+            if len(row_list) == queue_size:
+                # read in current chunk with the first half of the next chunk
+                data_more = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=int(2 * queue_size))
+
+                #save this increased chunk to new lists
+                no2_list_more = data_more["NO2 (ppb)"].to_list()
+                wcpc_list_more = data_more["WCPC (#/cm^3)"].to_list()
+                o3_list_more = data_more["O3 (ppb)"].to_list()
+                co_list_more = data_more["CO (ppb)"].to_list()
+                co2_list_more = data_more["CO2 (ppm)"].to_list()
+                no_list_more = data_more['NO (ppb)'].to_list()
+                ws_list_more = data_more['WS (m/s)'].to_list()
+                wd_list_more = data_more['WD (degrees)'].to_list()
+                row_list_more = data_more["Row"].to_list()
+
+                # label current more lists as full or not
+                if len(row_list_more) == (2*queue_size):
+                    more_lists_full = True
+                else:
+                    more_lists_full = False
+
+                #compute baseline of increased chunks
+                no2_baseline_more = compute_baseline(no2_list_more, setting_window_size, setting_smoothing)
+                wcpc_baseline_more = compute_baseline(wcpc_list_more, setting_window_size, setting_smoothing)
+                o3_baseline_more = compute_baseline(o3_list_more, setting_window_size, setting_smoothing)
+                co_baseline_more = compute_baseline(co_list_more, setting_window_size, setting_smoothing)
+                co2_baseline_more = compute_baseline(co2_list_more, setting_window_size, setting_smoothing)
+                no_baseline_more = compute_baseline(no_list_more, setting_window_size, setting_smoothing)
+                ws_baseline_more = compute_baseline(ws_list_more, setting_window_size, setting_smoothing)
+                wd_baseline_more = compute_baseline(wd_list_more, setting_window_size, setting_smoothing)
+
+                #override second half of baseline lists with the corresponding value in its corresponding baseline_more list
+                no2_baseline = overwrite_last_half(no2_baseline, no2_baseline_more)
+                wcpc_baseline = overwrite_last_half(wcpc_baseline, wcpc_baseline_more)
+                o3_baseline = overwrite_last_half(o3_baseline, o3_baseline_more)
+                co_baseline = overwrite_last_half(co_baseline, co_baseline_more)
+                co2_baseline = overwrite_last_half(co2_baseline, co2_baseline_more)
+                no_baseline = overwrite_last_half(no_baseline, no_baseline_more)
+                ws_baseline = overwrite_last_half(ws_baseline, ws_baseline_more)
+                wd_baseline = overwrite_last_half(wd_baseline, wd_baseline_more)
+
+            with open(output_csv,"a",newline='') as f:
+                w = csv.writer(f)
+
+                if current_chunk == 0:
+
+                    #write settings to output
+                    if settings_in_output:
+                        w.writerow(['window_size: ',setting_window_size])
+                        w.writerow(['smoothing_index: ',setting_smoothing])
+                        w.writerow(['chunk_size: ', queue_size])
+                        w.writerow(['interlace_chunks: ', interlace_chunks])
+                        w.writerow(['', ''])
+
+                    w.writerow(output_cols)
+
+                for i in range(0,len(row_list)):
+                    w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i], "", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
+
+            # break loop if we're on the last chunk, otherwise go to next chunk
+            if len(row_list) < queue_size:
+                print("chunk "+str(current_chunk+1)+" written")
+                sys.exit()
+                break
             else:
-                more_lists_full = False
+                print("chunk "+str(current_chunk+1)+" written")
+                current_chunk += 1
+    else:
+        while True:
+            #read in the current chunk
+            data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
 
-            #compute baseline of increased chunks
-            no2_baseline_more = compute_baseline(no2_list_more, setting_window_size, setting_smoothing)
-            wcpc_baseline_more = compute_baseline(wcpc_list_more, setting_window_size, setting_smoothing)
-            o3_baseline_more = compute_baseline(o3_list_more, setting_window_size, setting_smoothing)
-            co_baseline_more = compute_baseline(co_list_more, setting_window_size, setting_smoothing)
-            co2_baseline_more = compute_baseline(co2_list_more, setting_window_size, setting_smoothing)
-            no_baseline_more = compute_baseline(no_list_more, setting_window_size, setting_smoothing)
-            ws_baseline_more = compute_baseline(ws_list_more, setting_window_size, setting_smoothing)
-            wd_baseline_more = compute_baseline(wd_list_more, setting_window_size, setting_smoothing)
+            #convert current chunk to lists
+            no2_list = data["NO2 (ppb)"].to_list()
+            wcpc_list = data["WCPC (#/cm^3)"].to_list()
+            o3_list = data["O3 (ppb)"].to_list()
+            co_list = data["CO (ppb)"].to_list()
+            co2_list = data["CO2 (ppm)"].to_list()
+            no_list = data['NO (ppb)'].to_list()
+            ws_list = data['WS (m/s)'].to_list()
+            wd_list = data['WD (degrees)'].to_list()
+            row_list = data["Row"].to_list()
+            time_list = data["Time"].to_list()
 
-            #override second half of baseline lists with the corresponding value in its corresponding baseline_more list
-            no2_baseline = overwrite_last_half(no2_baseline, no2_baseline_more)
-            wcpc_baseline = overwrite_last_half(wcpc_baseline, wcpc_baseline_more)
-            o3_baseline = overwrite_last_half(o3_baseline, o3_baseline_more)
-            co_baseline = overwrite_last_half(co_baseline, co_baseline_more)
-            co2_baseline = overwrite_last_half(co2_baseline, co2_baseline_more)
-            no_baseline = overwrite_last_half(no_baseline, no_baseline_more)
-            ws_baseline = overwrite_last_half(ws_baseline, ws_baseline_more)
-            wd_baseline = overwrite_last_half(wd_baseline, wd_baseline_more)
+            #compute baseline for current chunk and save as it's own list
+            no2_baseline = compute_baseline(no2_list,setting_window_size,setting_smoothing)
+            wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
+            o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
+            co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
+            co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
+            no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+            ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+            wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
 
-        with open(output_csv,"a",newline='') as f:
-            w = csv.writer(f)
+            with open(output_csv,"a",newline='') as f:
+                w = csv.writer(f)
 
-            if current_chunk == 0:
-                w.writerow(output_cols)
+                if current_chunk == 0:
 
-            for i in range(0,len(row_list)):
-                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i], "", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
+                    # write settings to output
+                    if settings_in_output:
+                        w.writerow(['window_size: ', setting_window_size])
+                        w.writerow(['smoothing_index: ', setting_smoothing])
+                        w.writerow(['chunk_size: ', queue_size])
+                        w.writerow(['interlace_chunks: ', interlace_chunks])
+                        w.writerow(['',''])
 
-        # break loop if we're on the last chunk, otherwise go to next chunk
-        if len(row_list) < queue_size:
-            print("chunk "+str(current_chunk+1)+" written")
-            sys.exit()
-            break
-        else:
-            print("chunk "+str(current_chunk+1)+" written")
-            current_chunk += 1
+                    w.writerow(output_cols)
+
+                for i in range(0,len(row_list)):
+                    w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
+
+            # break loop if we're on the last chunk, otherwise go to next chunk
+            if len(no2_list) < queue_size:
+                print("chunk "+str(current_chunk+1)+" written")
+                break
+            else:
+                print("chunk "+str(current_chunk+1)+" written")
+                current_chunk += 1
 else:
-    while True:
-        #read in the current chunk
-        data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
+    #creating all output csv filenames
+    output_names=[output_csv]
 
-        #convert current chunk to lists
-        no2_list = data["NO2 (ppb)"].to_list()
-        wcpc_list = data["WCPC (#/cm^3)"].to_list()
-        o3_list = data["O3 (ppb)"].to_list()
-        co_list = data["CO (ppb)"].to_list()
-        co2_list = data["CO2 (ppm)"].to_list()
-        no_list = data['NO (ppb)'].to_list()
-        ws_list = data['WS (m/s)'].to_list()
-        wd_list = data['WD (degrees)'].to_list()
-        row_list = data["Row"].to_list()
-        time_list = data["Time"].to_list()
-
-        #compute baseline for current chunk and save as it's own list
-        no2_baseline = compute_baseline(no2_list,setting_window_size,setting_smoothing)
-        wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
-        o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
-        co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
-        co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
-        no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
-        ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
-        wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
-
-        with open(output_csv,"a",newline='') as f:
-            w = csv.writer(f)
-
-            if current_chunk == 0:
-                w.writerow(output_cols)
-
-            for i in range(0,len(row_list)):
-                w.writerow([row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i], no_list[i], ws_list[i], wd_list[i],"", no2_baseline[i], wcpc_baseline[i], o3_baseline[i], co_baseline[i], co2_baseline[i],no_baseline[i], ws_baseline[i], wd_baseline[i] ])
-
-        # break loop if we're on the last chunk, otherwise go to next chunk
-        if len(no2_list) < queue_size:
-            print("chunk "+str(current_chunk+1)+" written")
-            break
+    for i in range(1,runs):
+        next_name = filename_no_extension + ", window_size = "+str(all_window_sizes[i])+', smoothing_index = '+str(all_smoothing_indexes[i])+', chunk_size='+str(queue_size)
+        if interlace_chunks:
+            next_name += ", interlaced chunks.csv"
         else:
-            print("chunk "+str(current_chunk+1)+" written")
-            current_chunk += 1
+            next_name += ', not interlaced.csv'
+        output_names.append(next_name)
 
+
+    print('Bulk processing ENABLED')
+
+    for run in range(0,runs):
+        current_chunk=0
+        setting_window_size = all_window_sizes[run]
+        setting_smoothing = all_smoothing_indexes[run]
+        output_csv = output_names[run]
+        print('\nComputing baseline '+str(run+1)+' of '+str(runs)+', window_size = '+str(setting_window_size)+', smoothing_index = '+str(setting_smoothing))
+
+        if interlace_chunks:
+            while True:
+                # read in the current chunk
+                data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
+
+                # convert current chunk to lists
+                no2_list = data["NO2 (ppb)"].to_list()
+                wcpc_list = data["WCPC (#/cm^3)"].to_list()
+                o3_list = data["O3 (ppb)"].to_list()
+                co_list = data["CO (ppb)"].to_list()
+                co2_list = data["CO2 (ppm)"].to_list()
+                no_list = data['NO (ppb)'].to_list()
+                ws_list = data['WS (m/s)'].to_list()
+                wd_list = data['WD (degrees)'].to_list()
+                row_list = data["Row"].to_list()
+                time_list = data["Time"].to_list()
+
+                # compute baseline for current chunk and save as it's own list
+                no2_baseline = compute_baseline(no2_list, setting_window_size, setting_smoothing)
+                wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
+                o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
+                co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
+                co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
+                no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+                ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+                wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
+
+                # check if there's data from previous chunk that we can use for interlacing
+                if (current_chunk != 0):
+                    if more_lists_full:
+                        no2_baseline = overwrite_first_half(no2_baseline, no2_baseline_more)
+                        wcpc_baseline = overwrite_first_half(wcpc_baseline, wcpc_baseline_more)
+                        o3_baseline = overwrite_first_half(o3_baseline, o3_baseline_more)
+                        co_baseline = overwrite_first_half(co_baseline, co_baseline_more)
+                        co2_baseline = overwrite_first_half(co2_baseline, co2_baseline_more)
+                        no_baseline = overwrite_first_half(no_baseline, no_baseline_more)
+                        ws_baseline = overwrite_first_half(ws_baseline, ws_baseline_more)
+                        wd_baseline = overwrite_first_half(wd_baseline, wd_baseline_more)
+
+                # check if there's data ahead that we can use for interlacing
+                if len(row_list) == queue_size:
+                    # read in current chunk with the first half of the next chunk
+                    data_more = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size),
+                                            nrows=int(2 * queue_size))
+
+                    # save this increased chunk to new lists
+                    no2_list_more = data_more["NO2 (ppb)"].to_list()
+                    wcpc_list_more = data_more["WCPC (#/cm^3)"].to_list()
+                    o3_list_more = data_more["O3 (ppb)"].to_list()
+                    co_list_more = data_more["CO (ppb)"].to_list()
+                    co2_list_more = data_more["CO2 (ppm)"].to_list()
+                    no_list_more = data_more['NO (ppb)'].to_list()
+                    ws_list_more = data_more['WS (m/s)'].to_list()
+                    wd_list_more = data_more['WD (degrees)'].to_list()
+                    row_list_more = data_more["Row"].to_list()
+
+                    # label current more lists as full or not
+                    if len(row_list_more) == (2 * queue_size):
+                        more_lists_full = True
+                    else:
+                        more_lists_full = False
+
+                    # compute baseline of increased chunks
+                    no2_baseline_more = compute_baseline(no2_list_more, setting_window_size, setting_smoothing)
+                    wcpc_baseline_more = compute_baseline(wcpc_list_more, setting_window_size, setting_smoothing)
+                    o3_baseline_more = compute_baseline(o3_list_more, setting_window_size, setting_smoothing)
+                    co_baseline_more = compute_baseline(co_list_more, setting_window_size, setting_smoothing)
+                    co2_baseline_more = compute_baseline(co2_list_more, setting_window_size, setting_smoothing)
+                    no_baseline_more = compute_baseline(no_list_more, setting_window_size, setting_smoothing)
+                    ws_baseline_more = compute_baseline(ws_list_more, setting_window_size, setting_smoothing)
+                    wd_baseline_more = compute_baseline(wd_list_more, setting_window_size, setting_smoothing)
+
+                    # override second half of baseline lists with the corresponding value in its corresponding baseline_more list
+                    no2_baseline = overwrite_last_half(no2_baseline, no2_baseline_more)
+                    wcpc_baseline = overwrite_last_half(wcpc_baseline, wcpc_baseline_more)
+                    o3_baseline = overwrite_last_half(o3_baseline, o3_baseline_more)
+                    co_baseline = overwrite_last_half(co_baseline, co_baseline_more)
+                    co2_baseline = overwrite_last_half(co2_baseline, co2_baseline_more)
+                    no_baseline = overwrite_last_half(no_baseline, no_baseline_more)
+                    ws_baseline = overwrite_last_half(ws_baseline, ws_baseline_more)
+                    wd_baseline = overwrite_last_half(wd_baseline, wd_baseline_more)
+
+                with open(output_csv, "a", newline='') as f:
+                    w = csv.writer(f)
+
+                    if current_chunk == 0:
+
+                        # write settings to output
+                        if settings_in_output:
+                            w.writerow(['window_size: ', setting_window_size])
+                            w.writerow(['smoothing_index: ', setting_smoothing])
+                            w.writerow(['chunk_size: ', queue_size])
+                            w.writerow(['interlace_chunks: ', interlace_chunks])
+                            w.writerow(['', ''])
+
+                        w.writerow(output_cols)
+
+                    for i in range(0, len(row_list)):
+                        w.writerow(
+                            [row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i],
+                             no_list[i], ws_list[i], wd_list[i], "", no2_baseline[i], wcpc_baseline[i], o3_baseline[i],
+                             co_baseline[i], co2_baseline[i], no_baseline[i], ws_baseline[i], wd_baseline[i]])
+
+                # break loop if we're on the last chunk, otherwise go to next chunk
+                if len(row_list) < queue_size:
+                    print("chunk " + str(current_chunk + 1) + " written")
+                    break
+                else:
+                    print("chunk " + str(current_chunk + 1) + " written")
+                    current_chunk += 1
+        else:
+            while True:
+                # read in the current chunk
+                data = pd.read_csv(filename, names=col_names, skiprows=(1 + current_chunk * queue_size), nrows=queue_size)
+
+                # convert current chunk to lists
+                no2_list = data["NO2 (ppb)"].to_list()
+                wcpc_list = data["WCPC (#/cm^3)"].to_list()
+                o3_list = data["O3 (ppb)"].to_list()
+                co_list = data["CO (ppb)"].to_list()
+                co2_list = data["CO2 (ppm)"].to_list()
+                no_list = data['NO (ppb)'].to_list()
+                ws_list = data['WS (m/s)'].to_list()
+                wd_list = data['WD (degrees)'].to_list()
+                row_list = data["Row"].to_list()
+                time_list = data["Time"].to_list()
+
+                # compute baseline for current chunk and save as it's own list
+                no2_baseline = compute_baseline(no2_list, setting_window_size, setting_smoothing)
+                wcpc_baseline = compute_baseline(wcpc_list, setting_window_size, setting_smoothing)
+                o3_baseline = compute_baseline(o3_list, setting_window_size, setting_smoothing)
+                co_baseline = compute_baseline(co_list, setting_window_size, setting_smoothing)
+                co2_baseline = compute_baseline(co2_list, setting_window_size, setting_smoothing)
+                no_baseline = compute_baseline(no_list, setting_window_size, setting_smoothing)
+                ws_baseline = compute_baseline(ws_list, setting_window_size, setting_smoothing)
+                wd_baseline = compute_baseline(wd_list, setting_window_size, setting_smoothing)
+
+                with open(output_csv, "a", newline='') as f:
+                    w = csv.writer(f)
+
+                    if current_chunk == 0:
+
+                        # write settings to output
+                        if settings_in_output:
+                            w.writerow(['window_size: ', setting_window_size])
+                            w.writerow(['smoothing_index: ', setting_smoothing])
+                            w.writerow(['chunk_size: ', queue_size])
+                            w.writerow(['interlace_chunks: ', interlace_chunks])
+                            w.writerow(['', ''])
+
+                        w.writerow(output_cols)
+
+                    for i in range(0, len(row_list)):
+                        w.writerow(
+                            [row_list[i], time_list[i], no2_list[i], wcpc_list[i], o3_list[i], co_list[i], co2_list[i],
+                             no_list[i], ws_list[i], wd_list[i], "", no2_baseline[i], wcpc_baseline[i], o3_baseline[i],
+                             co_baseline[i], co2_baseline[i], no_baseline[i], ws_baseline[i], wd_baseline[i]])
+
+                # break loop if we're on the last chunk, otherwise go to next chunk
+                if len(no2_list) < queue_size:
+                    print("chunk " + str(current_chunk + 1) + " written")
+                    break
+                else:
+                    print("chunk " + str(current_chunk + 1) + " written")
+                    current_chunk += 1
 

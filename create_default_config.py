@@ -131,8 +131,7 @@ config['A1_misc'] = {
     'folder_directory': '',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
-    'chunk_size': '3000'
-
+    'chunk_size': '3000',
 }
 
 #PP_A1 thresh dump settings
@@ -161,13 +160,48 @@ config['AQ_thresh'] = {
 config['baseline'] ={
     'window_size': '3',
     'smoothing_index': '5',
-    'chunk_size': '400',
+    'chunk_size': '3000',
     'interlace_chunks':'true',
     'folder_directory': '',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
-    'settings_in_name': 'true'
+    'settings_in_name': 'true',
+}
 
+#baseline bulk processing
+config['baseline_bulk_processing'] = {
+    'enable_bulk_processing': 'false',
+    'window_sizes': '3,3,4',
+    'smoothing_indexes': '7,15,25,30'
+}
+
+#PPA1 bulk processing
+config['A1_bulk_processing'] = {
+    'enable_bulk_processing': 'false',
+    'no2_coeffs': '10,25',
+    'no2_percentiles':'50',
+    'no2_thresh_bump_percentiles':'1',
+    'wcpc_coeffs': '10,25',
+    'wcpc_percentiles':'50',
+    'wcpc_thresh_bump_percentiles':'1',
+    'o3_coeffs': '10,25',
+    'o3_percentiles':'50',
+    'o3_thresh_bump_percentiles':'1',
+    'co_coeffs': '10,25',
+    'co_percentiles':'50',
+    'co_thresh_bump_percentiles':'1',
+    'co2_coeffs': '10,25',
+    'co2_percentiles':'50',
+    'co2_thresh_bump_percentiles':'1',
+    'no_coeffs': '10,25',
+    'no_percentiles':'50',
+    'no_thresh_bump_percentiles':'1',
+    'ws_coeffs': '10,25',
+    'ws_percentiles':'50',
+    'ws_thresh_bump_percentiles':'1',
+    'wd_coeffs': '10,25',
+    'wd_percentiles':'50',
+    'wd_thresh_bump_percentiles':'1'
 }
 
 #modbus settings
