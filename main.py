@@ -279,6 +279,7 @@ def AQap(data_points, pollutant):
     if (data_points[-1] > AQ_thresh[pollutant]) and (AQ_over[pollutant] == False):
         AQ_over[pollutant] = True
         #print(pollutant + " AQ over threshold of " + str(AQ_thresh[pollutant]))
+        ##
         auto_event_mark("AQ-" + pollutant.upper() + "-over-" + str(AQ_auto_event_count[pollutant]), "AQ over", pollutant)
         AQ_auto_event_count[pollutant] += 1
         return None
