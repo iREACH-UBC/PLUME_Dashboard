@@ -19,6 +19,7 @@ PLUME Dashboard also requires the following Python packages to run:
 * db
 * pyModbusTCP
 * pyModbus
+* pyuac
 
 To install these packages, open PyCharm, navigate to File>Settings>Project>Python Interpreter and click on the “+” icon near the top left corner. From here, for each package, enter its name into the search bar, click on the first result, and then click on “Install Package” in the lower left corner. 
 
