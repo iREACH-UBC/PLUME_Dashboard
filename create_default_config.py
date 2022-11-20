@@ -15,6 +15,13 @@ config = ConfigParser(allow_no_value=True)
 
 
 
+#simple start settings
+config['simple_start'] = {
+    'enable_simple_start':'true',
+    'DAQ_script_name':'modbus-tcp_daq.py',
+    'redis_program_directory':'C:/Program Files/Redis'
+}
+
 #live plot y-range settings
 config['y-ranges'] = {
     'NO2': '0,100',
@@ -165,7 +172,7 @@ config['baseline'] ={
     'folder_directory': '',
     'input_filename': 'IN.csv',
     'output_filename': 'OUT.csv',
-    'settings_in_name': 'true',
+    'settings_in_name': 'true'
 }
 
 #baseline bulk processing

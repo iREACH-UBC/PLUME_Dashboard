@@ -33,6 +33,7 @@ from configparser import ConfigParser
 from pathlib import Path
 import json
 from os.path import exists
+import pyuac
 
 #NOTE: when you see variables like "fold_start = 0" or "avs = 0", those are just lines of folds starting and ending (pycharm doesn't want fold borders to be comments)
 
@@ -277,7 +278,7 @@ def AQap(data_points, pollutant):
     #detecting if the graph moves upward over the line
     if (data_points[-1] > AQ_thresh[pollutant]) and (AQ_over[pollutant] == False):
         AQ_over[pollutant] = True
-        print(pollutant + " AQ over threshold of " + str(AQ_thresh[pollutant]))
+        #print(pollutant + " AQ over threshold of " + str(AQ_thresh[pollutant]))
         auto_event_mark("AQ-" + pollutant.upper() + "-over-" + str(AQ_auto_event_count[pollutant]), "AQ over", pollutant)
         AQ_auto_event_count[pollutant] += 1
         return None
@@ -285,7 +286,7 @@ def AQap(data_points, pollutant):
     #detecting if the graph moves downward over the line
     if (data_points[-1] < AQ_thresh[pollutant]) and (AQ_over[pollutant] == True):
         AQ_over[pollutant] = False
-        print(pollutant + " AQ back to under threshold of " + str(AQ_thresh[pollutant]))
+        #print(pollutant + " AQ back to under threshold of " + str(AQ_thresh[pollutant]))
         auto_event_mark("AQ-" + pollutant.upper() + "-under-" + str(AQ_auto_event_count[pollutant]), "AQ under", pollutant)
         AQ_auto_event_count[pollutant] += 1
         return None
@@ -1774,6 +1775,8 @@ if __name__ == '__main__':
     if exists('user_defined_settings.ini') == False:
         sys.exit("ERROR: \"user_defined_settings.ini\" config file not found, please run \"create_default_config.py\"")
 
+
+
     #config
     parser = ConfigParser(allow_no_value=True)
     parser.read('user_defined_settings.ini')
@@ -1845,6 +1848,18 @@ if __name__ == '__main__':
     ############################
     ## GLOBAL PARAM VARIABLES ##
     ############################
+
+    #simple start
+    enable_simple_start = parser.getboolean('simple_start','enable_simple_start')
+    if enable_simple_start:
+        if not pyuac.isUserAdmin():
+            sys.exit('ERROR: Please run PyCharm as admin')
+        redis_directory = parser.get('simple_start','redis_program_directory')
+        os.system('cd '+redis_directory)
+        os.system('start redis-server.exe')
+        os.system('start redis-cli.exe')
+        daq_script_name = parser.get('simple_start','DAQ_script_name')
+        exec(open(daq_script_name).read())
 
     #graph y axes ranges
     y_range_dict = {

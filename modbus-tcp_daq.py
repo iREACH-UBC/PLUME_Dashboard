@@ -11,6 +11,7 @@ redis-server.exe (AS ADMIN), and then run redis-cli.exe (again, AS ADMIN). Addit
 import redis
 import threading
 import random
+#import pyuac
 import datetime
 import json
 import openpyxl
@@ -165,8 +166,15 @@ if __name__ == "__main__":
     }
     ip_setting = parser.get('modbus-tcp','ip_address')
 
-    if ip_setting == '':
-        sys.exit("ERROR: please input an ip address for the [modbus-tcp] \"ip_address\" setting")
+    all_disabled = True
+    for i in enable_pollutant_setting:
+        if enable_pollutant_setting[i] == True:
+            all_disabled = False
+            break
+
+    if all_disabled == False:
+        if ip_setting == '':
+            sys.exit("ERROR: please input an ip address for the [modbus-tcp] \"ip_address\" setting")
 
     port_setting = parser.getint('modbus-tcp','port')
 
@@ -197,6 +205,7 @@ if __name__ == "__main__":
     conn = redis.Redis(host='localhost')
 
     #printing information
+    '''
     print('ip address: '+ip_setting)
     print('port: '+str(port_setting)+'\n')
     for pollutant in enable_pollutant_setting:
@@ -205,6 +214,7 @@ if __name__ == "__main__":
         else:
             #print(pollutant+": disabled using \'"+disabled_behaviour_setting+'\' behaviour')
             print(pollutant + ": disabled")
+    '''
 
 
     all_disabled = True
