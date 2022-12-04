@@ -17,7 +17,7 @@ config = ConfigParser(allow_no_value=True)
 
 #simple start settings
 config['simple_start'] = {
-    'enable_simple_start':'true',
+    'enable_simple_start':'false',
     'DAQ_script_name':'modbus-tcp_daq.py',
     'redis_program_directory':'C:/Program Files/Redis'
 }
