@@ -12,3 +12,4 @@ pyModbusTCP==0.1.8
 pyserial==3.5
 db==0.1.1
 openpyxl>=3.0.9
+pyuac==0.0.3
